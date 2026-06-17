@@ -43,7 +43,7 @@ const AppRouter = (() => {
     // double-routing which would leave the loader stuck.
     AuthModule.onAuthChange(async (event, session) => {
       window.bootLog?.(`Auth event triggered: ${event}`);
-      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
         if (session?.user) {
           window.bootLog?.(`Session confirmed for ${session.user.email}`);
           UIModule.updateUserAvatar();
@@ -93,21 +93,41 @@ const AppRouter = (() => {
       document.getElementById('profile-popup')?.classList.add('hidden');
     });
 
-    // Explicit session check as fallback — only routes if onAuthStateChange
-    // hasn't already handled it (INITIAL_SESSION fires ~instantly on Supabase v2).
+    // ─── Offline-Resilient Session Check ───────────────────────
+    // getSession() awaits the stored token read + possible network token refresh.
+    // If the refresh fails (no internet, Supabase down) it returns null — but the
+    // user IS still logged in and we should show cached data, not the login page.
     window.bootLog?.("Checking current auth session...");
-    const session = await AuthModule.getSession();
-    window.bootLog?.("Auth session check finished.");
+    let session = null;
+    try {
+      session = await AuthModule.getSession();
+    } catch (err) {
+      window.bootLog?.('getSession() threw: ' + err.message);
+    }
+    window.bootLog?.("Auth session check finished. user=" + (session?.user?.email || 'none'));
+
     if (!_routingInProgress && !_currentPage) {
       if (session?.user) {
+        // Normal path: valid (possibly refreshed) session
         window.bootLog?.(`Routing active session for ${session.user.email}...`);
         UIModule.updateUserAvatar();
         _routingInProgress = true;
         await _routeAfterAuth();
         clearTimeout(loaderTimeout);
         _routingInProgress = false;
+      } else if (AuthModule.hasStoredSession()) {
+        // Offline path: token refresh failed but we have a stored session.
+        // Route to dashboard — it renders from localStorage cache and retries
+        // network calls (which will re-auth once connectivity is restored).
+        window.bootLog?.('getSession null but stored session found — routing to cached dashboard (offline)');
+        UIModule.updateUserAvatar();
+        _routingInProgress = true;
+        await _routeAfterAuth();
+        clearTimeout(loaderTimeout);
+        _routingInProgress = false;
       } else {
-        window.bootLog?.("No active session found, showing login page...");
+        // Truly no session — show login
+        window.bootLog?.('No session found — showing login.');
         clearTimeout(loaderTimeout);
         UIModule.showLoader(false);
         navigate('login');

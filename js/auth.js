@@ -14,12 +14,16 @@ const AuthModule = (() => {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        // Explicitly pin to localStorage so the session survives PWA standalone
-        // restarts, app-switcher kills, and service worker cache bumps.
+        // Explicitly pin to localStorage so sessions survive PWA standalone
+        // restarts and service worker cache bumps across all Android/iOS contexts.
         storage: window.localStorage,
-        storageKey: 'attendcount-session',
+        // Use the default Supabase key so existing sessions are preserved.
+        // DO NOT change storageKey — it would force every user to re-login.
       }
     });
+
+    // Migrate any legacy session stored under our old custom key
+    _migrateLegacySession();
 
     // Listen for auth state changes
     _supabase.auth.onAuthStateChange(async (event, session) => {
@@ -33,6 +37,46 @@ const AuthModule = (() => {
     });
 
     return _supabase;
+  }
+
+  function _migrateLegacySession() {
+    // Move session stored under our old custom key (from a previous buggy commit)
+    // to the Supabase default key so it is found on next open.
+    try {
+      const LEGACY_KEY = 'attendcount-session';
+      const legacy = localStorage.getItem(LEGACY_KEY);
+      if (!legacy) return;
+      const { SUPABASE_URL: url } = window.APP_CONFIG || {};
+      const ref = url?.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+      if (!ref) return;
+      const defaultKey = `sb-${ref}-auth-token`;
+      if (!localStorage.getItem(defaultKey)) {
+        // Only migrate if the default key is empty to avoid overwriting a newer session
+        localStorage.setItem(defaultKey, legacy);
+      }
+      localStorage.removeItem(LEGACY_KEY);
+    } catch (_) {}
+  }
+
+  function hasStoredSession() {
+    // Returns true if ANY Supabase session is persisted in localStorage.
+    // Used by the boot flow to avoid showing the login page when the network
+    // is unavailable and the token refresh fails (the session is still valid).
+    try {
+      const { SUPABASE_URL: url } = window.APP_CONFIG || {};
+      const ref = url?.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+      const defaultKey = ref ? `sb-${ref}-auth-token` : null;
+      const legacyKey  = 'attendcount-session';
+
+      const raw = (defaultKey ? localStorage.getItem(defaultKey) : null)
+                || localStorage.getItem(legacyKey);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      // Must have at least a refresh_token to be considered a valid stored session
+      return !!(parsed?.refresh_token);
+    } catch (_) {
+      return false;
+    }
   }
 
   async function _upsertUserRecord(user) {
@@ -111,5 +155,6 @@ const AuthModule = (() => {
     getUserEmail,
     onAuthChange,
     getClient,
+    hasStoredSession,
   };
 })();

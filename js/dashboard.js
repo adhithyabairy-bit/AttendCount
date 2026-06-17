@@ -705,41 +705,48 @@ const DashboardModule = (() => {
     } else {
       actionHtml = `
         <div class="grid grid-cols-2 gap-3 w-full">
-          <button onclick="DashboardModule.widgetMark('present')" class="py-3.5 px-4 bg-green-500 text-black font-bold font-label-caps text-[11px] rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-1.5 shadow-md shadow-green-500/10">
-            <span class="material-symbols-outlined text-[16px]">check</span> PRESENT
+          <button onclick="DashboardModule.widgetMark('present')" class="min-h-14 px-4 bg-green-500 text-black font-bold font-label-caps text-[12px] rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-1.5 shadow-md shadow-green-500/10">
+            <span class="material-symbols-outlined text-[18px]">check</span> PRESENT
           </button>
-          <button onclick="DashboardModule.widgetMark('absent')" class="py-3.5 px-4 bg-red-500 text-white font-bold font-label-caps text-[11px] rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-1.5 shadow-md shadow-red-500/10">
-            <span class="material-symbols-outlined text-[16px]">close</span> ABSENT
+          <button onclick="DashboardModule.widgetMark('absent')" class="min-h-14 px-4 bg-red-500 text-white font-bold font-label-caps text-[12px] rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-1.5 shadow-md shadow-red-500/10">
+            <span class="material-symbols-outlined text-[18px]">close</span> ABSENT
           </button>
         </div>
       `;
     }
 
     widgetSection.innerHTML = `
-      <div class="glass-card rounded-3xl p-6 border border-primary/10 relative overflow-hidden bg-surface-container/20">
+      <div class="glass-card rounded-2xl p-4 border border-primary/10 relative overflow-hidden bg-surface-container/20">
         <!-- Glowing atmospheric background effect -->
         <div class="absolute -right-16 -top-16 w-36 h-36 rounded-full blur-[80px]" style="background: ${color}15"></div>
-        
-        <div class="flex justify-between items-center mb-5 relative z-10">
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary text-lg">widgets</span>
-            <span class="font-label-caps text-label-caps tracking-widest text-primary">Attendance Widget</span>
+
+        <!-- Row 1: Title + Connectivity badge (never overflow) -->
+        <div class="flex justify-between items-center mb-2 relative z-10">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="material-symbols-outlined text-primary text-[18px] shrink-0">widgets</span>
+            <span class="font-label-caps text-[10px] tracking-widest text-primary truncate">Attendance Widget</span>
           </div>
-          <div class="flex items-center gap-2">
-            ${cycleHtml}
-            ${_getWidgetOfflineBadge()}
+          ${_getWidgetOfflineBadge()}
+        </div>
+
+        <!-- Row 2: Cycle controls (only if multiple classes) -->
+        ${todayClasses.length > 1 ? `
+        <div class="flex items-center justify-end mb-3 relative z-10">
+          ${cycleHtml}
+        </div>
+        ` : '<div class="mb-3"></div>'}
+
+        <!-- Subject info -->
+        <div class="flex gap-3 items-center mb-4 relative z-10">
+          <div class="w-1 h-10 rounded-full shrink-0" style="background:${color}"></div>
+          <div class="min-w-0 flex-1">
+            <h4 class="font-bold text-[17px] leading-tight text-on-surface truncate">${activeClass.subject_name}</h4>
+            <p class="text-[12px] text-on-surface-variant mt-0.5 truncate">${activeClass.timeLabel} · ${activeClass.subject_type === 'lab' ? 'Lab · 3×' : 'Theory'}</p>
           </div>
         </div>
 
-        <div class="flex gap-4 items-center mb-6 relative z-10">
-          <div class="w-1.5 h-12 rounded-full shrink-0" style="background:${color}"></div>
-          <div>
-            <h4 class="font-headline-md text-headline-md leading-tight text-on-surface">${activeClass.subject_name}</h4>
-            <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">${activeClass.timeLabel} · ${activeClass.subject_type === 'lab' ? 'Lab (Wt 3)' : 'Theory (Wt 1)'}</p>
-          </div>
-        </div>
-
-        <div class="relative z-10 flex flex-col items-center">
+        <!-- Action buttons -->
+        <div class="relative z-10">
           ${actionHtml}
         </div>
       </div>

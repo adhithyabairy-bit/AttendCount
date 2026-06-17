@@ -49,9 +49,16 @@ const AppRouter = (() => {
           UIModule.updateUserAvatar();
           if (!_routingInProgress) {
             _routingInProgress = true;
-            await _routeAfterAuth();
-            clearTimeout(loaderTimeout);
-            _routingInProgress = false;
+            try {
+              await _routeAfterAuth();
+              clearTimeout(loaderTimeout);
+            } catch (err) {
+              console.error('[Boot] _routeAfterAuth error:', err);
+              clearTimeout(loaderTimeout);
+              navigate('dashboard');
+            } finally {
+              _routingInProgress = false;
+            }
           }
         } else if (event === 'SIGNED_IN') {
           // SIGNED_IN with no user is an error state — go to login
@@ -106,43 +113,64 @@ const AppRouter = (() => {
     }
     window.bootLog?.("Auth session check finished. user=" + (session?.user?.email || 'none'));
 
-    if (!_routingInProgress && !_currentPage) {
-      if (session?.user) {
-        // Normal path: valid (possibly refreshed) session
-        window.bootLog?.(`Routing active session for ${session.user.email}...`);
-        UIModule.updateUserAvatar();
-        _routingInProgress = true;
+    if (_routingInProgress) {
+      // onAuthStateChange already handled routing — nothing to do
+      return;
+    }
+
+    async function _safeRoute() {
+      _routingInProgress = true;
+      try {
         await _routeAfterAuth();
         clearTimeout(loaderTimeout);
-        _routingInProgress = false;
-      } else if (AuthModule.hasStoredSession()) {
-        // Offline path: token refresh failed but we have a stored session.
-        // Route to dashboard — it renders from localStorage cache and retries
-        // network calls (which will re-auth once connectivity is restored).
-        window.bootLog?.('getSession null but stored session found — routing to cached dashboard (offline)');
-        UIModule.updateUserAvatar();
-        _routingInProgress = true;
-        await _routeAfterAuth();
+      } catch (err) {
+        console.error('[Boot] _routeAfterAuth error:', err);
         clearTimeout(loaderTimeout);
+        navigate('dashboard');
+      } finally {
         _routingInProgress = false;
-      } else {
-        // Truly no session — show login
-        window.bootLog?.('No session found — showing login.');
-        clearTimeout(loaderTimeout);
-        UIModule.showLoader(false);
-        navigate('login');
       }
+    }
+
+    if (session?.user) {
+      // Normal path: valid (possibly refreshed) session
+      window.bootLog?.(`Routing active session for ${session.user.email}...`);
+      UIModule.updateUserAvatar();
+      await _safeRoute();
+    } else if (AuthModule.hasStoredSession()) {
+      // Offline path: token expired/refresh failed but session IS stored.
+      // Route to dashboard — shows cached data, retries when back online.
+      window.bootLog?.('getSession null but stored session found — routing to cached dashboard.');
+      UIModule.updateUserAvatar();
+      await _safeRoute();
+    } else {
+      // Truly no session — show login
+      window.bootLog?.('No session found — showing login.');
+      clearTimeout(loaderTimeout);
+      UIModule.showLoader(false);
+      navigate('login');
     }
   }
 
   async function _routeAfterAuth() {
     window.bootLog?.("Querying user subjects in database...");
-    const hasSubj = await ApiModule.hasSubjects();
+
+    // Offline-resilient: if the network request fails, fall back to localStorage cache.
+    // This prevents the 10-second timeout firing and showing the login page.
+    let hasSubj = false;
+    try {
+      hasSubj = await ApiModule.hasSubjects();
+    } catch (err) {
+      window.bootLog?.('hasSubjects() error (may be offline): ' + err.message);
+      const cached = ApiModule.getLocalCache();
+      hasSubj = !!(cached?.subjects?.length);
+      window.bootLog?.('Using cached subjects. hasSubj=' + hasSubj);
+    }
+
     window.bootLog?.(`Subject query finished. hasSubjects = ${hasSubj}`);
     const hash = window.location.hash.replace('#', '');
     const validPages = ['dashboard', 'holidays', 'classes', 'quick'];
 
-    // Determine destination after onboarding (or immediately)
     let dest;
     if (!hasSubj) {
       dest = 'setup';

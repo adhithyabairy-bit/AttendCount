@@ -44,10 +44,16 @@ const AuthModule = (() => {
   async function signInWithGoogle() {
     try {
       if (!_supabase) init();
+
+      // Always redirect back to wherever the user opened the app from.
+      // On Vercel this will be https://attend-count.vercel.app/
+      // On localhost this will be http://localhost:3000/
+      const redirectTo = window.location.origin + '/';
+
       const { error } = await _supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/',
+          redirectTo,
           scopes: 'email profile',
         },
       });

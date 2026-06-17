@@ -47,7 +47,7 @@ const AuthModule = (() => {
       provider: 'google',
       options: {
         // Request calendar.readonly so we can sync Google Calendar events
-        scopes: 'email profile https://www.googleapis.com/auth/calendar.readonly',
+        scopes: 'email profile',
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',

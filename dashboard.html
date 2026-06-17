@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>AttendCount Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface-variant": "#c1c6d7",
+                    "on-primary-fixed": "#001a41",
+                    "tertiary-container": "#ff5545",
+                    "tertiary-fixed": "#ffdad5",
+                    "on-tertiary-fixed": "#410001",
+                    "on-error-container": "#ffdad6",
+                    "surface-container-highest": "#353534",
+                    "surface-container-low": "#1c1b1b",
+                    "on-tertiary-container": "#5c0002",
+                    "inverse-on-surface": "#313030",
+                    "on-tertiary-fixed-variant": "#930005",
+                    "error-container": "#93000a",
+                    "on-primary-fixed-variant": "#004493",
+                    "primary-container": "#4b8eff",
+                    "surface-bright": "#393939",
+                    "surface-dim": "#131313",
+                    "outline-variant": "#414755",
+                    "background": "#131313",
+                    "on-tertiary": "#690003",
+                    "inverse-primary": "#005bc1",
+                    "surface-container-lowest": "#0e0e0e",
+                    "surface-container": "#201f1f",
+                    "on-primary-container": "#00285c",
+                    "on-secondary": "#3f2e00",
+                    "on-surface": "#e5e2e1",
+                    "tertiary": "#ffb4aa",
+                    "outline": "#8b90a0",
+                    "surface": "#131313",
+                    "tertiary-fixed-dim": "#ffb4aa",
+                    "secondary-fixed": "#ffdf9e",
+                    "error": "#ffb4ab",
+                    "on-background": "#e5e2e1",
+                    "on-secondary-container": "#6a4e00",
+                    "on-primary": "#002e69",
+                    "surface-tint": "#adc6ff",
+                    "inverse-surface": "#e5e2e1",
+                    "secondary-fixed-dim": "#fabd00",
+                    "secondary-container": "#fabd00",
+                    "primary-fixed": "#d8e2ff",
+                    "on-secondary-fixed": "#261a00",
+                    "on-secondary-fixed-variant": "#5b4300",
+                    "surface-variant": "#353534",
+                    "secondary": "#ffdf9e",
+                    "primary": "#adc6ff",
+                    "on-error": "#690005",
+                    "primary-fixed-dim": "#adc6ff",
+                    "surface-container-high": "#2a2a2a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "touch-target-min": "44px",
+                    "stack-sm": "8px",
+                    "safe-margin": "20px",
+                    "stack-md": "16px",
+                    "stack-lg": "32px",
+                    "gutter": "16px"
+            },
+            "fontFamily": {
+                    "display-stat": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "display-stat": ["48px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0A0A0A;
+            color: #e5e2e1;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.85s ease-in-out;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .neon-glow {
+            box-shadow: 0 0 15px rgba(173, 198, 255, 0.3);
+        }
+        .safe-margin-x {
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+    </style>
+<style class="">
+  /* Hide spin-buttons for Chrome, Safari, Edge, Opera */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Hide spin-buttons for Firefox */
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+</style></head>
+<body class="font-body-lg text-body-lg">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface/80 backdrop-blur-xl border-b border-white/10 flex justify-between items-center px-safe-margin py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="account_balance">account_balance</span>
+<h1 class="font-headline-lg text-headline-lg font-bold tracking-tight text-primary">AttendCount</h1>
+</div>
+<div class="relative">
+<button class="w-10 h-10 rounded-full border-2 border-primary/30 overflow-hidden active:scale-95 transition-transform" id="profileButton">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_TpcIz7ztW8ZsiEE1jfbHEvFOopcQQocAk3jD0VLzRzCSoAU-4ukyWfvI3wS_siAjP9kIBxavDBkLzQ8HPMg0rgSUNJQHL7WeKMBxW16yPy7Lapy_LWVVFlHVY1sBTTuGUM_uZAa77rj9BYsm45VZBLmGNYn0Dybd74tzHHtXvX2i1cAeCZQP5-W3RkrsC-XuFq4BcnprgNgT55JCM0j6GlVI7iqZEYFsl_7kl0a95oS4wp97iTfnnk1NvOAJVg-y7mmMLhJlI8A"/>
+</button>
+<!-- Logout Popup -->
+<div class="hidden absolute top-full right-0 mt-3 w-32 glass-card rounded-xl overflow-hidden shadow-2xl z-50 animate-in fade-in zoom-in duration-200" id="logoutPopup">
+<button class="w-full px-4 py-3 flex items-center gap-3 text-red-400 hover:bg-red-500/10 transition-colors active:bg-red-500/20">
+<span class="material-symbols-outlined text-[20px]" data-icon="logout">logout</span>
+<span class="font-label-caps text-label-caps">LOG OUT</span>
+</button>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 space-y-stack-lg">
+<!-- Attendance Gauges Bento -->
+<section class="safe-margin-x grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Real-Time Gauge -->
+<div class="glass-card rounded-xl p-6 flex flex-col items-center justify-center space-y-4 overflow-visible" style="background: radial-gradient(circle at 50% 0%, rgba(173, 198, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 70%);"><div class="relative w-64 h-64 flex items-center justify-center overflow-visible">
+<div class="absolute inset-0 rounded-full bg-primary/5 blur-2xl"></div>
+<svg class="w-full h-full -rotate-90 transform" viewbox="0 0 100 100">
+<circle class="text-white/5" cx="50" cy="50" fill="transparent" r="44" stroke="currentColor" stroke-width="6"></circle>
+<circle class="progress-ring-circle" cx="50" cy="50" fill="transparent" r="44" stroke="currentColor" stroke-dasharray="276.46" stroke-dashoffset="69.1" stroke-linecap="round" stroke-width="6" style="color: rgb(239, 68, 68);"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="font-display-stat text-display-stat" style="color: rgb(239, 68, 68);">75%</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant tracking-[0.25em] opacity-70">REAL-TIME</span>
+</div>
+</div>
+<div class="relative">
+<div class="absolute inset-0 bg-tertiary-container/20 blur-md rounded-full animate-pulse"></div>
+<div class="relative flex items-center gap-2 px-4 py-1.5 rounded-full backdrop-blur-md bg-surface/40 border border-tertiary-container/40" style="background-color: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.5);">
+<span class="material-symbols-outlined text-tertiary-container text-sm" data-icon="warning" style="color: rgb(239, 68, 68);">warning</span>
+<span class="font-label-caps text-label-caps text-tertiary-container font-bold" style="color: rgb(239, 68, 68);">CRITICAL</span>
+</div>
+</div></div>
+<!-- Official Portal Gauge -->
+</section>
+<!-- Safe-to-Miss Calculator -->
+<section class="safe-margin-x">
+<div class="glass-card rounded-xl p-8 relative overflow-hidden">
+<div class="relative z-10 flex flex-col items-center text-center space-y-2">
+<span class="font-label-caps text-label-caps text-primary tracking-[0.2em]">SAFE-TO-MISS </span>
+<h2 class="font-display-stat text-display-stat text-on-surface">You can skip <span class="text-primary">3</span></h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">more theory classes to stay above 75% attendance.</p>
+</div>
+</div>
+</section>
+<!-- What-If Predictor -->
+<section class="safe-margin-x space-y-4">
+<h3 class="font-headline-md text-headline-md px-1">What-If Predictor</h3>
+<div class="glass-card rounded-xl p-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+<div class="space-y-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant">MISSING CLASSES</label>
+<input class="w-full bg-transparent border-b-2 border-outline-variant focus:border-primary outline-none py-2 text-headline-md transition-colors" placeholder="0" type="number"/>
+</div>
+<div class="space-y-2 relative group">
+<label class="font-label-caps text-label-caps text-on-surface-variant">SESSION TYPE</label>
+<div class="relative" id="dropdownContainer">
+<!-- Custom Trigger -->
+<div class="w-full bg-transparent border-b-2 border-outline-variant flex items-center justify-between py-2 cursor-pointer group-hover:border-primary transition-colors" id="dropdownTrigger">
+<span class="text-headline-md text-on-surface font-headline-md" id="selectedOption">Theory (Wt 1)</span>
+<span class="material-symbols-outlined text-primary opacity-70 transition-transform" data-icon="expand_more" id="dropdownIcon">expand_more</span>
+</div>
+<!-- Custom Dropdown Overlay -->
+<div class="hidden absolute top-full left-0 w-full z-50 mt-1 glass-card bg-surface-container-low rounded-lg overflow-hidden shadow-2xl border border-white/10" id="dropdownMenu">
+<div class="px-4 py-3 bg-primary text-on-primary font-headline-md text-headline-md cursor-pointer hover:bg-primary/90 transition-colors dropdown-item" data-value="Theory (Wt 1)">
+        Theory (Wt 1)
+      </div>
+<div class="px-4 py-3 hover:bg-white/5 text-on-surface font-headline-md text-headline-md cursor-pointer transition-colors dropdown-item" data-value="Lab (Wt 3)">
+        Lab (Wt 3)
+      </div>
+</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-bold py-4 rounded-xl active:scale-95 transition-transform neon-glow flex items-center justify-center">
+                    CALCULATE
+                </button>
+</div>
+</section>
+<!-- Daily Schedule -->
+<section class="safe-margin-x space-y-4">
+<div class="flex justify-between items-center px-1">
+<h3 class="font-headline-md text-headline-md">Daily Schedule</h3>
+<div class="flex gap-2">
+<button class="font-label-caps text-label-caps text-primary hover:opacity-70 transition-opacity">MARK ALL</button>
+</div>
+</div>
+<div class="space-y-4">
+<!-- Class Card 1 -->
+<div class="glass-card rounded-xl p-5 flex items-center justify-between group">
+<div class="flex gap-4 items-center">
+<div class="w-2 h-12 bg-primary rounded-full"></div>
+<div>
+<p class="font-headline-md text-headline-md leading-tight">Advanced Algorithms</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">09:00 AM • Theory</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-3 rounded-full bg-white/5 text-green-400 hover:bg-green-500/20 active:scale-90 transition-all border border-white/5">
+<span class="material-symbols-outlined" data-icon="check">check</span>
+</button>
+<button class="p-3 rounded-full bg-white/5 text-red-400 hover:bg-red-500/20 active:scale-90 transition-all border border-white/5">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+</div>
+<!-- Class Card 2 -->
+<div class="glass-card rounded-xl p-5 flex items-center justify-between group">
+<div class="flex gap-4 items-center">
+<div class="w-2 h-12 bg-secondary rounded-full"></div>
+<div>
+<p class="font-headline-md text-headline-md leading-tight">Physics Lab - II</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">11:30 AM • Lab</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-3 rounded-full bg-white/5 text-green-400 hover:bg-green-500/20 active:scale-90 transition-all border border-white/5">
+<span class="material-symbols-outlined" data-icon="check">check</span>
+</button>
+<button class="p-3 rounded-full bg-white/5 text-red-400 hover:bg-red-500/20 active:scale-90 transition-all border border-white/5">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+</div>
+<!-- Class Card 3 -->
+<div class="glass-card rounded-xl p-5 flex items-center justify-between group">
+<div class="flex gap-4 items-center opacity-50">
+<div class="w-2 h-12 bg-outline rounded-full"></div>
+<div>
+<p class="font-headline-md text-headline-md leading-tight">Digital Marketing</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">02:30 PM • Theory</p>
+</div>
+</div>
+<div class="flex gap-2">
+<span class="font-label-caps text-label-caps text-on-surface-variant italic px-4">Upcoming</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Stats Visual -->
+<section class="safe-margin-x">
+<div class="h-48 glass-card rounded-xl relative overflow-hidden p-6 flex flex-col justify-between">
+<div class="relative z-10">
+<h4 class="font-label-caps text-label-caps text-on-surface-variant">ATTENDANCE TREND</h4>
+<p class="font-headline-lg text-headline-lg">+1.2% this week</p>
+</div>
+<div class="relative h-24 w-full flex items-end gap-2 z-10">
+<div class="flex-1 bg-primary/20 h-[40%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 h-[60%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 h-[45%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary/20 h-[80%] rounded-t-sm"></div>
+<div class="flex-1 bg-primary h-[95%] rounded-t-sm neon-glow"></div>
+</div>
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface/80 dark:bg-surface/80 backdrop-blur-xl border-t border-white/10 rounded-t-xl flex justify-around items-center px-safe-margin pt-2 pb-6">
+<a class="flex flex-col items-center justify-center text-primary font-bold gap-1 transition-all duration-300 active:scale-90" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant gap-1 hover:text-primary/80 transition-all duration-300 active:scale-90" href="#">
+<span class="material-symbols-outlined" data-icon="event_available">event_available</span>
+<span class="font-label-caps text-label-caps">Holidays</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant gap-1 hover:text-primary/80 transition-all duration-300 active:scale-90" href="#">
+<span class="material-symbols-outlined" data-icon="settings">school</span>
+<span class="font-label-caps text-label-caps">Classes</span>
+</a>
+</nav>
+<script>
+        // Micro-interactions and Gauge Animations
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputs = document.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.addEventListener('focus', () => {
+                    input.parentElement.classList.add('text-primary');
+                });
+                input.addEventListener('blur', () => {
+                    input.parentElement.classList.remove('text-primary');
+                });
+            });
+
+            // Smooth progress ring animation simulation
+            setTimeout(() => {
+                const rings = document.querySelectorAll('.progress-ring-circle');
+                rings.forEach(ring => {
+                    // Logic would normally set stroke-dashoffset here
+                });
+            }, 300);
+
+            // Toggle logout popup
+            const profileBtn = document.getElementById('profileButton');
+            const logoutPopup = document.getElementById('logoutPopup');
+            
+            profileBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                logoutPopup.classList.toggle('hidden');
+            });
+
+            document.addEventListener('click', () => {
+                logoutPopup.classList.add('hidden');
+            });
+
+            logoutPopup.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            // What-If Predictor Dropdown Logic
+            const dropdownTrigger = document.getElementById('dropdownTrigger');
+            const dropdownMenu = document.getElementById('dropdownMenu');
+            const selectedOptionText = document.getElementById('selectedOption');
+            const dropdownIcon = document.getElementById('dropdownIcon');
+            const dropdownItems = document.querySelectorAll('.dropdown-item');
+
+            dropdownTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = dropdownMenu.classList.contains('hidden');
+                if (isHidden) {
+                    dropdownMenu.classList.remove('hidden');
+                    dropdownIcon.style.transform = 'rotate(180deg)';
+                } else {
+                    dropdownMenu.classList.add('hidden');
+                    dropdownIcon.style.transform = 'rotate(0deg)';
+                }
+            });
+
+            dropdownItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const value = item.getAttribute('data-value');
+                    selectedOptionText.textContent = value;
+                    
+                    // Style matching for selected state
+                    dropdownItems.forEach(i => {
+                        i.classList.remove('bg-primary', 'text-on-primary');
+                        i.classList.add('text-on-surface', 'hover:bg-white/5');
+                    });
+                    item.classList.add('bg-primary', 'text-on-primary');
+                    item.classList.remove('text-on-surface', 'hover:bg-white/5');
+
+                    // Close immediately
+                    dropdownMenu.classList.add('hidden');
+                    dropdownIcon.style.transform = 'rotate(0deg)';
+                });
+            });
+
+            // Global click to close dropdown
+            document.addEventListener('click', () => {
+                if (!dropdownMenu.classList.contains('hidden')) {
+                    dropdownMenu.classList.add('hidden');
+                    dropdownIcon.style.transform = 'rotate(0deg)';
+                }
+            });
+        });
+    </script>
+</body></html>

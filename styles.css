@@ -1,0 +1,223 @@
+/* ============================================================
+   AttendCount — Global Design System & Shared Styles
+   ============================================================ */
+
+/* ─── Base ──────────────────────────────────────────────── */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #0A0A0A;
+  color: #e5e2e1;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Safe area for notched devices (PWA / TWA) */
+.pb-safe-bottom {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+.pt-safe-top {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+
+/* ─── Glass Card ──────────────────────────────────────────── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ─── Neon Glow Effects ───────────────────────────────────── */
+.neon-glow-primary {
+  box-shadow:
+    0 0 20px rgba(173, 198, 255, 0.25),
+    inset 0 0 12px rgba(255, 255, 255, 0.1);
+}
+
+.neon-glow-success {
+  box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
+}
+
+.neon-glow-error {
+  box-shadow: 0 0 15px rgba(255, 85, 69, 0.3);
+}
+
+/* ─── SVG Ring Animation ──────────────────────────────────── */
+.progress-ring-circle {
+  transition: stroke-dashoffset 0.85s cubic-bezier(0.65, 0, 0.35, 1);
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+/* ─── Calendar Grid ───────────────────────────────────────── */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.day-cell {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.day-cell:not(.is-holiday):not(.opacity-20):hover {
+  background: rgba(173, 198, 255, 0.12);
+}
+
+.day-cell.selected {
+  background: #adc6ff;
+  color: #002e69;
+  font-weight: 700;
+}
+
+.day-cell.is-holiday {
+  background: rgba(255, 255, 255, 0.04);
+  color: #8b90a0;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+/* ─── Timetable Slot ─────────────────────────────────────── */
+.timetable-slot {
+  border: 1px dashed rgba(173, 198, 255, 0.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.timetable-slot:hover {
+  border-color: rgba(173, 198, 255, 0.4);
+  background: rgba(173, 198, 255, 0.04);
+}
+
+/* ─── App Page Transitions ───────────────────────────────── */
+.app-page {
+  min-height: 100dvh;
+  animation: pageIn 0.3s ease-out;
+}
+
+.app-page.hidden {
+  display: none !important;
+}
+
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);  }
+}
+
+/* ─── Spinner ─────────────────────────────────────────────── */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #353534; border-radius: 10px; }
+
+/* ─── Form Inputs ─────────────────────────────────────────── */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+input[type='time']::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.5);
+}
+input[type='checkbox']:focus {
+  outline: none;
+  ring: none;
+}
+
+/* ─── Material Symbols ────────────────────────────────────── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* ─── Animate-in utility ──────────────────────────────────── */
+.animate-in {
+  animation-fill-mode: both;
+}
+.fade-in {
+  animation-name: fadeIn;
+}
+.zoom-in {
+  animation-name: zoomIn;
+}
+.slide-in-from-bottom-4 {
+  animation-name: slideFromBottom;
+}
+.slide-in-from-top-4 {
+  animation-name: slideFromTop;
+}
+.duration-200 { animation-duration: 200ms; }
+.duration-300 { animation-duration: 300ms; }
+.ease-out { animation-timing-function: ease-out; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slideFromBottom {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideFromTop {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Atmospheric Background Glow ─────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(173, 198, 255, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}

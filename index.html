@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <!-- Error Catcher -->
+  <script>
+    // Force cache purge and service worker unregistration if '?clear=1' is in URL
+    if (window.location.search.includes('clear=1')) {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          for (const r of registrations) r.unregister();
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(keys => {
+          for (const k of keys) caches.delete(k);
+        });
+      }
+      setTimeout(() => {
+        window.location.href = window.location.origin + window.location.hash;
+      }, 400);
+    }
+
+    window.bootLog = function(msg) {
+      console.log("[BootLog]", msg);
+      const logsContainer = document.getElementById('boot-logs');
+      if (logsContainer) {
+        logsContainer.classList.remove('hidden');
+        const p = document.createElement('div');
+        p.textContent = `> ${msg}`;
+        logsContainer.appendChild(p);
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+      }
+      const statusText = document.getElementById('loader-status');
+      if (statusText) {
+        statusText.textContent = msg;
+      }
+    };
+
+    window.addEventListener('error', function(e) {
+      const loader = document.getElementById('app-loader');
+      if (loader) {
+        loader.className = "fixed inset-0 z-[500] bg-background flex flex-col items-center justify-center p-6";
+        loader.innerHTML = `
+          <div class="p-6 text-center max-w-md bg-red-950/80 border border-red-500/30 rounded-2xl shadow-2xl">
+            <span class="material-symbols-outlined text-red-500 text-[48px] mb-3">error</span>
+            <h1 class="font-headline-lg text-red-400 font-bold text-lg">JavaScript Error</h1>
+            <p class="font-body-sm text-red-200 mt-2 text-left bg-black/40 p-4 rounded-xl font-mono overflow-auto text-xs max-h-60 whitespace-pre-wrap">${e.message}\\n\\nat ${e.filename}:${e.lineno}:${e.colno}\\n\\nStack:\\n${e.error ? e.error.stack : 'N/A'}</p>
+            <button onclick="location.reload(true)" class="mt-4 px-6 py-2.5 bg-red-700 hover:bg-red-600 text-white rounded-xl font-bold font-label-caps text-xs">Reload Page</button>
+          </div>
+        `;
+      }
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      const loader = document.getElementById('app-loader');
+      if (loader) {
+        loader.className = "fixed inset-0 z-[500] bg-background flex flex-col items-center justify-center p-6";
+        loader.innerHTML = `
+          <div class="p-6 text-center max-w-md bg-red-950/80 border border-red-500/30 rounded-2xl shadow-2xl">
+            <span class="material-symbols-outlined text-red-500 text-[48px] mb-3">error</span>
+            <h1 class="font-headline-lg text-red-400 font-bold text-lg">Promise Rejection</h1>
+            <p class="font-body-sm text-red-200 mt-2 text-left bg-black/40 p-4 rounded-xl font-mono overflow-auto text-xs max-h-60 whitespace-pre-wrap">${e.reason ? (e.reason.message || e.reason) : 'Unknown Promise Rejection'}\\n\\nStack:\\n${e.reason && e.reason.stack ? e.reason.stack : 'N/A'}</p>
+            <button onclick="location.reload(true)" class="mt-4 px-6 py-2.5 bg-red-700 hover:bg-red-600 text-white rounded-xl font-bold font-label-caps text-xs">Reload Page</button>
+          </div>
+        `;
+      }
+    });
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#131313"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="AttendCount"/>
+  <meta name="description" content="The Attendance Safety Margin Auditor for university students. Track real-time attendance, predict safe skips, and sync holidays."/>
+  <title>AttendCount — Attendance Tracker</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src https://fonts.gstatic.com;
+    connect-src 'self' https://*.supabase.co https://www.googleapis.com https://lh3.googleusercontent.com;
+    img-src 'self' data: https://lh3.googleusercontent.com https://lh4.googleusercontent.com blob:;
+  "/>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'primary':                 '#adc6ff',
+            'on-primary':              '#002e69',
+            'primary-container':       '#4b8eff',
+            'on-primary-container':    '#00285c',
+            'primary-fixed':           '#d8e2ff',
+            'primary-fixed-dim':       '#adc6ff',
+            'on-primary-fixed':        '#001a41',
+            'on-primary-fixed-variant':'#004493',
+            'secondary':               '#ffdf9e',
+            'on-secondary':            '#3f2e00',
+            'secondary-container':     '#fabd00',
+            'on-secondary-container':  '#6a4e00',
+            'secondary-fixed':         '#ffdf9e',
+            'secondary-fixed-dim':     '#fabd00',
+            'on-secondary-fixed':      '#261a00',
+            'on-secondary-fixed-variant':'#5b4300',
+            'tertiary':                '#ffb4aa',
+            'on-tertiary':             '#690003',
+            'tertiary-container':      '#ff5545',
+            'on-tertiary-container':   '#5c0002',
+            'tertiary-fixed':          '#ffdad5',
+            'tertiary-fixed-dim':      '#ffb4aa',
+            'on-tertiary-fixed':       '#410001',
+            'on-tertiary-fixed-variant':'#930005',
+            'error':                   '#ffb4ab',
+            'on-error':                '#690005',
+            'error-container':         '#93000a',
+            'on-error-container':      '#ffdad6',
+            'background':              '#131313',
+            'on-background':           '#e5e2e1',
+            'surface':                 '#131313',
+            'on-surface':              '#e5e2e1',
+            'surface-variant':         '#353534',
+            'on-surface-variant':      '#c1c6d7',
+            'surface-container-lowest':'#0e0e0e',
+            'surface-container-low':   '#1c1b1b',
+            'surface-container':       '#201f1f',
+            'surface-container-high':  '#2a2a2a',
+            'surface-container-highest':'#353534',
+            'surface-bright':          '#393939',
+            'surface-dim':             '#131313',
+            'outline':                 '#8b90a0',
+            'outline-variant':         '#414755',
+            'inverse-surface':         '#e5e2e1',
+            'inverse-on-surface':      '#313030',
+            'inverse-primary':         '#005bc1',
+            'surface-tint':            '#adc6ff',
+          },
+          spacing: {
+            'safe-margin': '20px',
+            'gutter': '16px',
+            'stack-sm': '8px',
+            'stack-md': '16px',
+            'stack-lg': '32px',
+            'touch-target-min': '44px',
+          },
+          borderRadius: {
+            DEFAULT: '0.25rem',
+            lg: '0.5rem',
+            xl: '0.75rem',
+            '2xl': '1rem',
+            '3xl': '1.5rem',
+            full: '9999px',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          fontSize: {
+            'display-stat': ['48px', { lineHeight: '48px', letterSpacing: '-0.02em', fontWeight: '800' }],
+            'headline-lg':  ['24px', { lineHeight: '32px', fontWeight: '700' }],
+            'headline-md':  ['20px', { lineHeight: '28px', fontWeight: '600' }],
+            'body-lg':      ['16px', { lineHeight: '24px', fontWeight: '400' }],
+            'body-sm':      ['14px', { lineHeight: '20px', fontWeight: '400' }],
+            'label-caps':   ['12px', { lineHeight: '16px', letterSpacing: '0.05em', fontWeight: '700' }],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/styles.css"/>
+</head>
+<body class="bg-background text-on-surface font-sans antialiased overflow-x-hidden">
+
+<!-- ══════════════════════════════════════════════════════════
+     GLOBAL APP LOADER
+══════════════════════════════════════════════════════════ -->
+<div id="app-loader" class="fixed inset-0 z-[500] bg-background flex flex-col items-center justify-center gap-6">
+  <div class="relative w-20 h-20">
+    <svg class="w-full h-full -rotate-90 animate-spin-slow" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="44" fill="transparent" stroke="rgba(173,198,255,0.1)" stroke-width="6"/>
+      <circle cx="50" cy="50" r="44" fill="transparent" stroke="#adc6ff" stroke-width="6"
+        stroke-linecap="round" stroke-dasharray="276" stroke-dashoffset="100"/>
+    </svg>
+    <span class="material-symbols-outlined absolute inset-0 flex items-center justify-center text-primary text-[32px]">account_balance</span>
+  </div>
+  <div class="text-center">
+    <h1 class="font-headline-lg text-primary font-bold">AttendCount</h1>
+    <p class="font-body-sm text-on-surface-variant mt-1" id="loader-status">Loading your data...</p>
+    <div id="boot-logs" class="text-left font-mono text-[10px] text-outline/50 mt-4 max-w-xs mx-auto space-y-1 bg-black/20 p-3 rounded-xl border border-white/5 hidden max-h-40 overflow-y-auto"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE: LOGIN
+══════════════════════════════════════════════════════════ -->
+<div id="page-login" class="app-page hidden min-h-screen flex flex-col items-center justify-center px-safe-margin relative overflow-hidden">
+  <!-- Background atmosphere -->
+  <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-primary/5 rounded-full blur-[100px]"></div>
+    <div class="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-primary/5 to-transparent"></div>
+  </div>
+
+  <div class="relative z-10 w-full max-w-sm space-y-8 text-center">
+    <!-- Logo -->
+    <div class="flex flex-col items-center gap-3">
+      <div class="w-20 h-20 rounded-3xl glass-card flex items-center justify-center neon-glow-primary">
+        <span class="material-symbols-outlined text-primary text-[40px]">account_balance</span>
+      </div>
+      <h1 class="font-display-stat text-4xl text-primary font-extrabold">AttendCount</h1>
+      <p class="font-body-sm text-on-surface-variant max-w-xs">The Attendance Safety Margin Auditor for university students.</p>
+    </div>
+
+    <!-- Features -->
+    <div class="space-y-3 text-left">
+      <div class="flex items-center gap-3 px-4 py-3 glass-card rounded-xl">
+        <span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+        <span class="font-body-sm text-on-surface">Real-time vs Portal tracking</span>
+      </div>
+      <div class="flex items-center gap-3 px-4 py-3 glass-card rounded-xl">
+        <span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+        <span class="font-body-sm text-on-surface">Lab weightage (3x) auto-handled</span>
+      </div>
+      <div class="flex items-center gap-3 px-4 py-3 glass-card rounded-xl">
+        <span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+        <span class="font-body-sm text-on-surface">Google Calendar holiday sync</span>
+      </div>
+      <div class="flex items-center gap-3 px-4 py-3 glass-card rounded-xl">
+        <span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
+        <span class="font-body-sm text-on-surface">Safe-to-miss calculator</span>
+      </div>
+    </div>
+
+    <!-- Google Sign In -->
+    <div class="space-y-4">
+      <button id="google-signin-btn" onclick="AuthModule.signInWithGoogle()" class="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl bg-white text-gray-800 font-bold text-base shadow-2xl hover:shadow-white/20 active:scale-95 transition-all">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Sign in with Google
+      </button>
+      <p class="font-body-sm text-on-surface-variant text-center px-4">
+        By signing in, you agree to our <a href="/privacy_policy.html" class="text-primary hover:underline">Privacy Policy</a>.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE: SETUP WIZARD
+══════════════════════════════════════════════════════════ -->
+<div id="page-setup" class="app-page hidden min-h-screen">
+  <!-- Header -->
+  <header class="fixed top-0 w-full z-40 bg-surface/80 backdrop-blur-xl border-b border-white/5 flex justify-between items-center px-safe-margin py-4">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-primary">account_balance</span>
+      <h1 class="font-headline-lg text-headline-lg font-bold text-primary">AttendCount</h1>
+    </div>
+    <button onclick="AuthModule.signOut().then(() => AppRouter.navigate('login'))" class="font-label-caps text-label-caps text-on-surface-variant hover:text-error transition-colors">Sign Out</button>
+  </header>
+
+  <main class="pt-24 pb-32 px-safe-margin max-w-lg mx-auto">
+    <!-- Progress -->
+    <div class="mb-8">
+      <div class="flex justify-between items-end mb-2">
+        <span id="setup-step-indicator" class="font-label-caps text-label-caps text-primary uppercase tracking-widest">Step 1 of 3</span>
+        <span id="setup-step-title" class="font-body-sm text-on-surface-variant">Subject Configuration</span>
+      </div>
+      <div class="w-full h-1 bg-surface-container rounded-full overflow-hidden">
+        <div id="setup-progress-bar" class="h-full rounded-full transition-all duration-500" style="background: linear-gradient(90deg, #adc6ff 0%, #4b8eff 100%); width: 33.3%"></div>
+      </div>
+    </div>
+    <!-- Dynamic content -->
+    <div id="setup-content"></div>
+  </main>
+
+  <!-- Bottom Controls -->
+  <div class="fixed bottom-0 w-full z-40 bg-surface/90 backdrop-blur-xl border-t border-white/5 px-safe-margin pt-4 pb-8 flex gap-gutter">
+    <button id="setup-back-btn" class="hidden flex-1 py-4 rounded-2xl border border-white/10 font-label-caps text-label-caps text-on-surface-variant hover:bg-white/5 transition-colors uppercase">Back</button>
+    <button id="setup-next-btn" class="flex-[2] py-4 rounded-2xl bg-primary text-on-primary font-label-caps text-label-caps font-bold uppercase neon-glow-primary active:scale-95 transition-all">Next Step</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SHARED: TOP APP BAR (Dashboard, Holidays, Classes)
+══════════════════════════════════════════════════════════ -->
+<header id="main-header" class="fixed top-0 w-full z-40 bg-surface/80 backdrop-blur-xl border-b border-white/5 flex justify-between items-center px-safe-margin py-4 hidden">
+  <div class="flex items-center gap-3">
+    <span class="material-symbols-outlined text-primary">account_balance</span>
+    <h1 class="font-headline-lg text-headline-lg font-bold text-primary">AttendCount</h1>
+  </div>
+  <div class="relative">
+    <button id="profile-btn" class="w-9 h-9 rounded-full border-2 border-primary/20 overflow-hidden active:scale-95 transition-transform">
+      <img class="user-avatar-img w-full h-full object-cover" src="/icons/icon-192.png" alt="Profile"/>
+    </button>
+    <!-- Profile popup -->
+    <div id="profile-popup" class="hidden absolute right-0 top-full mt-2 w-52 glass-card rounded-2xl overflow-hidden shadow-2xl z-50 border border-white/10">
+      <div class="p-4 border-b border-white/5">
+        <p class="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-widest">Signed in as</p>
+        <p class="user-display-name font-body-sm font-semibold text-on-surface mt-0.5 truncate"></p>
+        <p class="user-email font-body-sm text-on-surface-variant text-[11px] truncate"></p>
+      </div>
+      <button onclick="AppRouter.requestPushPermission()" class="w-full flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-white/5 transition-colors font-body-sm text-body-sm">
+        <span class="material-symbols-outlined text-[18px]">notifications</span> Enable Notifications
+      </button>
+      <button onclick="AppRouter.signOut()" class="w-full flex items-center gap-3 px-4 py-3 text-error hover:bg-error/10 transition-colors font-body-sm text-body-sm border-t border-white/5">
+        <span class="material-symbols-outlined text-[18px]">logout</span> Log Out
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE: DASHBOARD
+══════════════════════════════════════════════════════════ -->
+<div id="page-dashboard" class="app-page hidden">
+  <main class="pt-24 pb-32 px-safe-margin space-y-stack-lg max-w-2xl mx-auto">
+
+    <!-- Attendance Gauges -->
+    <section>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-gutter" id="dash-gauges">
+        <!-- Populated by DashboardModule._renderGauges() -->
+        <div class="glass-card rounded-2xl p-6 h-64 animate-pulse col-span-2"></div>
+      </div>
+    </section>
+
+    <!-- Safe-to-Miss -->
+    <section id="dash-safe-to-miss">
+      <div class="glass-card rounded-2xl p-8 h-40 animate-pulse"></div>
+    </section>
+
+    <!-- What-If Predictor -->
+    <section class="space-y-4">
+      <h3 class="font-headline-md text-headline-md px-1">What-If Predictor</h3>
+      <div class="glass-card rounded-2xl p-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+          <div class="space-y-2">
+            <label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Missing Classes</label>
+            <input id="whatif-miss-count" type="number" min="0" placeholder="0"
+              class="w-full bg-transparent border-b-2 border-outline-variant focus:border-primary outline-none py-2 font-headline-md text-headline-md transition-colors text-on-surface">
+          </div>
+          <div class="space-y-2">
+            <label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Session Type</label>
+            <div class="relative" id="whatif-dropdown">
+              <div id="whatif-type-trigger" data-weight="1" class="border-b-2 border-outline-variant flex items-center justify-between py-2 cursor-pointer hover:border-primary transition-colors">
+                <span id="whatif-type-selected" class="font-headline-md text-on-surface">Theory (Wt 1)</span>
+                <span id="whatif-type-icon" class="material-symbols-outlined text-primary/70 transition-transform">expand_more</span>
+              </div>
+              <div id="whatif-type-menu" class="hidden absolute top-full left-0 w-full z-50 mt-1 glass-card rounded-xl overflow-hidden shadow-2xl border border-white/10">
+                <div data-wt="1" class="px-4 py-3 bg-primary text-on-primary font-body-lg cursor-pointer hover:opacity-90 transition-opacity">Theory (Wt 1)</div>
+                <div data-wt="3" class="px-4 py-3 hover:bg-white/5 text-on-surface font-body-lg cursor-pointer transition-colors">Lab (Wt 3)</div>
+              </div>
+            </div>
+          </div>
+          <button id="whatif-calc-btn" class="w-full bg-primary text-on-primary font-bold py-4 rounded-xl active:scale-95 transition-transform neon-glow-primary flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">calculate</span> CALCULATE
+          </button>
+        </div>
+        <div id="whatif-result"></div>
+      </div>
+    </section>
+
+    <!-- Daily Schedule -->
+    <section class="space-y-4">
+      <div class="flex justify-between items-center px-1">
+        <h3 class="font-headline-md text-headline-md">Today's Schedule</h3>
+        <span class="font-label-caps text-label-caps text-on-surface-variant" id="today-label"></span>
+      </div>
+      <div class="space-y-3" id="dash-schedule">
+        <div class="glass-card rounded-xl h-20 animate-pulse"></div>
+        <div class="glass-card rounded-xl h-20 animate-pulse"></div>
+      </div>
+    </section>
+
+    <!-- Attendance Trend -->
+    <section>
+      <div id="dash-trend">
+        <div class="glass-card rounded-2xl h-44 animate-pulse"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE: HOLIDAYS
+══════════════════════════════════════════════════════════ -->
+<div id="page-holidays" class="app-page hidden">
+  <!-- Holiday Name Modal -->
+  <div id="holiday-name-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-gutter bg-black/60 backdrop-blur-sm">
+    <div class="glass-card w-full max-w-sm rounded-2xl p-6 space-y-4">
+      <div>
+        <h3 class="font-headline-md text-on-surface">Name this Holiday</h3>
+        <p id="holiday-modal-date" class="font-body-sm text-on-surface-variant mt-1"></p>
+      </div>
+      <input id="holiday-name-input" type="text" placeholder="e.g. Winter Break"
+        class="w-full bg-surface-container-highest border-none rounded-xl text-on-surface px-4 py-3 focus:ring-2 focus:ring-primary focus:outline-none font-body-lg"/>
+      <div class="flex gap-3 pt-1">
+        <button onclick="HolidaysModule.closeNameModal()" class="flex-1 px-4 py-3 rounded-xl font-label-caps text-label-caps text-on-surface-variant bg-surface-container-high hover:bg-white/10 transition-colors">CANCEL</button>
+        <button onclick="HolidaysModule.confirmHoliday()" class="flex-1 px-4 py-3 rounded-xl font-label-caps text-label-caps text-on-primary bg-primary hover:opacity-90 transition-opacity">CONFIRM</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="pt-24 pb-32 px-safe-margin max-w-lg mx-auto space-y-stack-lg">
+    <!-- Calendar -->
+    <section class="space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="font-headline-md text-headline-md text-on-surface">Select Dates</h2>
+        <div class="flex items-center gap-2">
+          <button onclick="HolidaysModule.prevMonth()" class="p-2 hover:text-primary transition-colors active:scale-90">
+            <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+          </button>
+          <span id="cal-month-label" class="font-label-caps text-label-caps text-on-surface-variant min-w-[120px] text-center"></span>
+          <button onclick="HolidaysModule.nextMonth()" class="p-2 hover:text-primary transition-colors active:scale-90">
+            <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+          </button>
+        </div>
+      </div>
+      <div class="glass-card rounded-2xl p-4">
+        <div class="calendar-grid mb-2">
+          <div class="text-center font-label-caps text-[11px] text-outline pb-2">M</div>
+          <div class="text-center font-label-caps text-[11px] text-outline pb-2">T</div>
+          <div class="text-center font-label-caps text-[11px] text-outline pb-2">W</div>
+          <div class="text-center font-label-caps text-[11px] text-outline pb-2">T</div>
+          <div class="text-center font-label-caps text-[11px] text-outline pb-2">F</div>
+          <div class="text-center font-label-caps text-[11px] text-outline pb-2">S</div>
+          <div class="text-center font-label-caps text-[11px] text-outline pb-2">S</div>
+        </div>
+        <div id="cal-grid" class="calendar-grid"></div>
+      </div>
+
+      <!-- Google Calendar Sync -->
+      <div class="glass-card rounded-2xl p-4 flex items-center justify-between border border-primary/10" style="background:rgba(173,198,255,0.03)">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[18px]">calendar_month</span>
+            <span class="font-headline-md text-[15px] text-on-surface">Sync Google Calendar</span>
+          </div>
+          <span id="gcal-sync-status" class="font-body-sm text-body-sm text-on-surface-variant block mt-0.5">Auto-import holidays from your calendar</span>
+        </div>
+        <div class="flex flex-col items-end gap-2">
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="gcal-sync-toggle" class="sr-only peer" onchange="HolidaysModule.handleSyncToggle(this.checked)"/>
+            <div class="w-11 h-6 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
+          </label>
+          <button id="gcal-sync-btn" onclick="HolidaysModule.triggerCalendarSync()" class="flex items-center gap-1.5 font-label-caps text-[10px] text-primary hover:opacity-80 transition-opacity">
+            <span class="material-symbols-outlined text-[14px]">sync</span> Sync Now
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Holiday List -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="font-headline-md text-headline-md text-on-surface">Upcoming Holidays</h2>
+        <span id="holiday-count" class="font-label-caps text-label-caps text-primary bg-primary/10 px-2 py-0.5 rounded-full">0</span>
+      </div>
+      <div class="space-y-3" id="holiday-list"></div>
+      <!-- Empty state -->
+      <div id="holiday-empty-state" class="hidden flex-col items-center justify-center py-12 opacity-40">
+        <span class="material-symbols-outlined text-[48px] mb-3">event_busy</span>
+        <p class="font-label-caps text-label-caps">No holidays this month</p>
+        <p class="font-body-sm text-on-surface-variant mt-1">Tap a date to mark a holiday</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE: CLASSES
+══════════════════════════════════════════════════════════ -->
+<div id="page-classes" class="app-page hidden">
+  <!-- Subject Detail Modal -->
+  <div id="subject-detail-modal" class="fixed inset-0 z-[100] hidden items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div class="glass-card w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-6 max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-5">
+        <h2 class="font-headline-lg text-on-surface">Subject Details</h2>
+        <button onclick="ClassesModule.closeSubjectDetail()" class="p-2 rounded-full hover:bg-white/10">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div id="subject-detail-content"></div>
+    </div>
+  </div>
+
+  <main class="pt-24 pb-32 px-safe-margin max-w-lg mx-auto">
+    <section class="mb-4">
+      <h2 class="font-headline-lg text-headline-lg text-on-surface mb-1">My Classes</h2>
+      <p class="font-body-sm text-outline">Manage your academic attendance tracking.</p>
+    </section>
+
+    <!-- Summary Header -->
+    <div id="classes-summary-header"></div>
+
+    <!-- Subject List -->
+    <div class="space-y-4" id="classes-list">
+      <div class="glass-card rounded-2xl h-24 animate-pulse"></div>
+      <div class="glass-card rounded-2xl h-24 animate-pulse"></div>
+      <div class="glass-card rounded-2xl h-24 animate-pulse"></div>
+    </div>
+
+    <!-- Add Subject FAB -->
+    <div class="h-8"></div>
+    <button onclick="AppRouter.navigate('setup')" class="w-full py-4 border-2 border-dashed border-primary/20 rounded-2xl font-label-caps text-label-caps text-primary flex items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all active:scale-95">
+      <span class="material-symbols-outlined">add</span> ADD NEW SUBJECT
+    </button>
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SHARED: BOTTOM NAVIGATION
+══════════════════════════════════════════════════════════ -->
+<nav id="main-nav" class="fixed bottom-0 w-full z-40 bg-surface/80 backdrop-blur-xl border-t border-white/5 rounded-t-2xl flex justify-around items-center px-gutter pt-2 pb-safe-bottom hidden">
+  <a data-nav="dashboard" onclick="AppRouter.navigate('dashboard')" href="#dashboard"
+    class="flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-xl transition-all duration-200 active:scale-90 text-on-surface-variant">
+    <span class="material-symbols-outlined text-[24px]">dashboard</span>
+    <span class="font-label-caps text-label-caps">Dashboard</span>
+  </a>
+  <a data-nav="holidays" onclick="AppRouter.navigate('holidays')" href="#holidays"
+    class="flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-xl transition-all duration-200 active:scale-90 text-on-surface-variant">
+    <span class="material-symbols-outlined text-[24px]">event_available</span>
+    <span class="font-label-caps text-label-caps">Holidays</span>
+  </a>
+  <a data-nav="classes" onclick="AppRouter.navigate('classes')" href="#classes"
+    class="flex flex-col items-center justify-center gap-1 py-2 px-4 rounded-xl transition-all duration-200 active:scale-90 text-on-surface-variant">
+    <span class="material-symbols-outlined text-[24px]">school</span>
+    <span class="font-label-caps text-label-caps">Classes</span>
+  </a>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════
+     SCRIPTS (load order matters)
+══════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/config.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/ui.js"></script>
+<script src="/js/setup.js"></script>
+<script src="/js/dashboard.js"></script>
+<script src="/js/holidays.js"></script>
+<script src="/js/classes.js"></script>
+<script src="/js/push.js"></script>
+<script src="/app.js"></script>
+
+</body>
+</html>

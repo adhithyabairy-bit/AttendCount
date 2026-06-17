@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>AttendCount | Holiday Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface-variant": "#c1c6d7",
+                    "on-primary-fixed": "#001a41",
+                    "tertiary-container": "#ff5545",
+                    "tertiary-fixed": "#ffdad5",
+                    "on-tertiary-fixed": "#410001",
+                    "on-error-container": "#ffdad6",
+                    "surface-container-highest": "#353534",
+                    "surface-container-low": "#1c1b1b",
+                    "on-tertiary-container": "#5c0002",
+                    "inverse-on-surface": "#313030",
+                    "on-tertiary-fixed-variant": "#930005",
+                    "error-container": "#93000a",
+                    "on-primary-fixed-variant": "#004493",
+                    "primary-container": "#4b8eff",
+                    "surface-bright": "#393939",
+                    "surface-dim": "#131313",
+                    "outline-variant": "#414755",
+                    "background": "#131313",
+                    "on-tertiary": "#690003",
+                    "inverse-primary": "#005bc1",
+                    "surface-container-lowest": "#0e0e0e",
+                    "surface-container": "#201f1f",
+                    "on-primary-container": "#00285c",
+                    "on-secondary": "#3f2e00",
+                    "on-surface": "#e5e2e1",
+                    "tertiary": "#ffb4aa",
+                    "outline": "#8b90a0",
+                    "surface": "#131313",
+                    "tertiary-fixed-dim": "#ffb4aa",
+                    "secondary-fixed": "#ffdf9e",
+                    "error": "#ffb4ab",
+                    "on-background": "#e5e2e1",
+                    "on-secondary-container": "#6a4e00",
+                    "on-primary": "#002e69",
+                    "surface-tint": "#adc6ff",
+                    "inverse-surface": "#e5e2e1",
+                    "secondary-fixed-dim": "#fabd00",
+                    "secondary-container": "#fabd00",
+                    "primary-fixed": "#d8e2ff",
+                    "on-secondary-fixed": "#261a00",
+                    "on-secondary-fixed-variant": "#5b4300",
+                    "surface-variant": "#353534",
+                    "secondary": "#ffdf9e",
+                    "primary": "#adc6ff",
+                    "on-error": "#690005",
+                    "primary-fixed-dim": "#adc6ff",
+                    "surface-container-high": "#2a2a2a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "touch-target-min": "44px",
+                    "stack-sm": "8px",
+                    "safe-margin": "20px",
+                    "stack-md": "16px",
+                    "stack-lg": "32px",
+                    "gutter": "16px"
+            },
+            "fontFamily": {
+                    "display-stat": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "display-stat": ["48px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0A0A0A;
+            color: #e5e2e1;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-top-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .glass-modal {
+            background: rgba(19, 19, 19, 0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .day-cell {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .day-cell.selected {
+            background: #adc6ff;
+            color: #002e69;
+            border-radius: 50%;
+            font-weight: 700;
+        }
+
+        .day-cell.is-holiday {
+            background: rgba(255, 255, 255, 0.05);
+            color: #8b90a0;
+            text-decoration: line-through;
+            cursor: not-allowed;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #353534;
+            border-radius: 10px;
+        }
+
+        .cyber-glow {
+            box-shadow: 0 0 15px -3px rgba(173, 198, 255, 0.3);
+        }
+        
+        #holiday-modal {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #holiday-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        #profile-popup {
+            display: none;
+        }
+        #profile-popup.active {
+            display: block;
+        }
+    </style>
+<style>
+            @keyframes spin-slow {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+            .animate-spin-slow {
+                animation: spin-slow 12s linear infinite;
+            }
+        </style></head>
+<body class="font-body-lg text-body-lg">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface/80 backdrop-blur-xl border-b border-white/10 flex justify-between items-center px-safe-margin py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="account_balance">account_balance</span>
+<h1 class="font-headline-lg text-headline-lg font-bold tracking-tight text-primary">AttendCount</h1>
+</div>
+<div class="relative">
+<button class="transition-transform duration-200 active:scale-90 flex items-center justify-center" id="profile-btn" onclick="toggleProfilePopup()">
+<div class="w-8 h-8 rounded-full border-2 border-primary/40 overflow-hidden bg-surface-container">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuANC-9nGSBsfJwAp7Tjl4kRwfSoiUosxE50yacltTpQdSdqDpxyz2ohVrkUsdY-tkuKfVJePwcbLtXPB7WYhY3LiT-8wpG2hsxuKrgGQP9vDaWnIYnJbeQ2uMmcnAzEMqr6JCAwwvF4RDeMlmKBR1zlxFY1MMmLri53nXzj5vOIAhG3rRmMyKl7l-wPwuojTbeZSmaa9V1lxQhMNGRAD9DUvoidKVJxUHOhf6LpB8j0B3tM_ZLBpyIqbsYgZMWjYtI9CHLyGVDBBuk"/>
+</div>
+</button>
+<!-- Profile/Logout Popup -->
+<div class="absolute right-0 mt-3 w-40 glass-modal rounded-xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-2" id="profile-popup">
+<button class="w-full px-4 py-3 flex items-center gap-3 text-error hover:bg-error/10 transition-colors active:bg-error/20" onclick="handleLogout()">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span class="font-label-caps text-label-caps">Log Out</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Holiday Selection Modal -->
+<div class="fixed inset-0 z-[100] items-center justify-center p-gutter bg-black/60 backdrop-blur-sm" id="holiday-modal">
+<div class="glass-modal w-full max-w-sm rounded-2xl p-6 space-y-stack-md transform transition-all scale-100">
+<h3 class="font-headline-md text-on-surface">Name this Holiday</h3>
+<p class="text-body-sm text-on-surface-variant">Enter a label for the selected date.</p>
+<input class="w-full bg-surface-container-highest border-none rounded-lg text-on-surface px-4 py-3 focus:ring-2 focus:ring-primary focus:outline-none" id="holiday-name-input" placeholder="e.g. Winter Break" type="text"/>
+<div class="flex gap-3 pt-2">
+<button class="flex-1 px-4 py-3 rounded-lg font-label-caps text-label-caps text-on-surface-variant bg-surface-container-high transition-colors active:scale-95" onclick="closeModal()">CANCEL</button>
+<button class="flex-1 px-4 py-3 rounded-lg font-label-caps text-label-caps text-on-primary bg-primary transition-colors active:scale-95" onclick="confirmHoliday()">CONFIRM</button>
+</div>
+</div>
+</div>
+<!-- Main Content -->
+<main class="pt-24 pb-32 px-safe-margin max-w-lg mx-auto space-y-stack-lg">
+<!-- Section: Calendar Selector -->
+<section class="space-y-stack-md">
+<div class="flex justify-between items-center">
+<h2 class="font-headline-md text-headline-md text-on-surface">Select Dates</h2>
+<div class="flex items-center gap-3">
+<button class="p-1 hover:text-primary transition-colors active:scale-90">
+<span class="material-symbols-outlined text-[20px]" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5 transition-colors active:scale-95" onclick="const m = document.getElementById('date-picker-modal'); m.classList.remove('hidden'); m.classList.add('flex');">
+<span class="font-label-caps text-label-caps text-on-surface-variant">October 2024</span>
+<span class="material-symbols-outlined text-[16px] text-outline" data-icon="arrow_drop_down">arrow_drop_down</span>
+</button>
+<button class="p-1 hover:text-primary transition-colors active:scale-90">
+<span class="material-symbols-outlined text-[20px]" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="glass-card rounded-xl p-4">
+<div class="calendar-grid mb-2">
+<!-- Day Labels -->
+<div class="text-center font-label-caps text-label-caps text-outline pb-2">M</div>
+<div class="text-center font-label-caps text-label-caps text-outline pb-2">T</div>
+<div class="text-center font-label-caps text-label-caps text-outline pb-2">W</div>
+<div class="text-center font-label-caps text-label-caps text-outline pb-2">T</div>
+<div class="text-center font-label-caps text-label-caps text-outline pb-2">F</div>
+<div class="text-center font-label-caps text-label-caps text-outline pb-2">S</div>
+<div class="text-center font-label-caps text-label-caps text-outline pb-2">S</div>
+<!-- Calendar Days -->
+<div class="day-cell text-on-surface-variant opacity-30">29</div>
+<div class="day-cell text-on-surface-variant opacity-30">30</div>
+<div class="day-cell text-on-surface" data-date="2024-10-01">1</div>
+<div class="day-cell text-on-surface" data-date="2024-10-02">2</div>
+<div class="day-cell text-on-surface is-holiday">3</div>
+<div class="day-cell text-on-surface" data-date="2024-10-04">4</div>
+<div class="day-cell text-on-surface" data-date="2024-10-05">5</div>
+<div class="day-cell text-on-surface" data-date="2024-10-06">6</div>
+<div class="day-cell text-on-surface" data-date="2024-10-07">7</div>
+<div class="day-cell text-on-surface" data-date="2024-10-08">8</div>
+<div class="day-cell text-on-surface" data-date="2024-10-09">9</div>
+<div class="day-cell text-on-surface" data-date="2024-10-10">10</div>
+<div class="day-cell text-on-surface" data-date="2024-10-11">11</div>
+<div class="day-cell text-on-surface" data-date="2024-10-12">12</div>
+<div class="day-cell text-on-surface" data-date="2024-10-13">13</div>
+<div class="day-cell selected cyber-glow" data-date="2024-10-14">14</div>
+<div class="day-cell selected cyber-glow" data-date="2024-10-15">15</div>
+<div class="day-cell selected cyber-glow" data-date="2024-10-16">16</div>
+<div class="day-cell text-on-surface" data-date="2024-10-17">17</div>
+<div class="day-cell text-on-surface" data-date="2024-10-18">18</div>
+<div class="day-cell text-on-surface" data-date="2024-10-19">19</div>
+</div>
+</div>
+<!-- Google Calendar Sync Action -->
+<div class="glass-card rounded-xl p-4 flex items-center justify-between border-primary/20 bg-primary/5">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="google">calendar_month</span>
+<span class="font-headline-md text-[16px] text-on-surface">Sync Google Calendar</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Auto-import official holidays</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" id="google-sync-toggle" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-sm"></div>
+</label>
+</div>
+</section>
+<!-- Section: Upcoming Holidays List -->
+<section class="space-y-stack-md">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md text-on-surface">Upcoming Holidays</h2>
+<span class="text-label-caps text-primary bg-primary/10 px-2 py-0.5 rounded" id="holiday-count">3</span>
+</div>
+<div class="space-y-gutter" id="holiday-list">
+<!-- Holiday Card 1 -->
+<div class="holiday-item glass-card rounded-xl p-4 flex items-center gap-4 transition-all active:scale-[0.98]" data-holiday-id="1">
+<div class="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="celebration">celebration</span>
+</div>
+<div class="flex-1">
+<p class="holiday-title font-headline-md text-[16px] text-on-surface">Gandhi Jayanti</p>
+<p class="holiday-date font-body-sm text-body-sm text-on-surface-variant">Oct 02, 2024</p>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-on-surface-variant hover:text-tertiary transition-colors" onclick="removeHoliday(this)">
+<span class="material-symbols-outlined text-[20px]" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Holiday Card 2 -->
+<div class="holiday-item glass-card rounded-xl p-4 flex items-center gap-4 transition-all active:scale-[0.98]" data-holiday-id="2">
+<div class="h-12 w-12 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" data-icon="festival">festival</span>
+</div>
+<div class="flex-1">
+<p class="holiday-title font-headline-md text-[16px] text-on-surface">Dussehra Break</p>
+<p class="holiday-date font-body-sm text-body-sm text-on-surface-variant">Oct 12, 2024</p>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-on-surface-variant hover:text-tertiary transition-colors" onclick="removeHoliday(this)">
+<span class="material-symbols-outlined text-[20px]" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Holiday Card 3 -->
+<div class="holiday-item glass-card rounded-xl p-4 flex items-center gap-4 transition-all active:scale-[0.98]" data-holiday-id="3">
+<div class="h-12 w-12 rounded-lg bg-on-surface-variant/10 flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+</div>
+<div class="flex-1">
+<p class="holiday-title font-headline-md text-[16px] text-on-surface">Mid-Term Break</p>
+<p class="holiday-date font-body-sm text-body-sm text-on-surface-variant">Oct 24, 2024</p>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-on-surface-variant hover:text-tertiary transition-colors" onclick="removeHoliday(this)">
+<span class="material-symbols-outlined text-[20px]" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Empty State Visual -->
+<div class="hidden flex-col items-center justify-center py-stack-lg opacity-40" id="empty-state">
+<div class="relative w-24 h-24 mb-4">
+<div class="absolute inset-0 border-2 border-dashed border-outline rounded-full animate-spin-slow"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="material-symbols-outlined text-[32px]" data-icon="event_busy">event_busy</span>
+</div>
+</div>
+<p class="text-label-caps font-label-caps">No more holidays this month</p>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface/80 dark:bg-surface/80 backdrop-blur-xl rounded-t-xl border-t border-white/10 flex justify-around items-center px-safe-margin pt-2 pb-6">
+<a class="flex flex-col items-center justify-center text-on-surface-variant gap-1 hover:text-primary/80 transition-all duration-300 active:scale-90" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary font-bold gap-1 hover:text-primary/80 transition-all duration-300 active:scale-90" href="#">
+<span class="material-symbols-outlined" data-icon="event_available" style="font-variation-settings: 'FILL' 1;">event_available</span>
+<span class="font-label-caps text-label-caps">Holidays</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant gap-1 hover:text-primary/80 transition-all duration-300 active:scale-90" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-caps text-label-caps">Settings</span>
+</a>
+</nav>
+<!-- Scripts -->
+<script>
+    let selectedCell = null;
+    const modal = document.getElementById('holiday-modal');
+    const input = document.getElementById('holiday-name-input');
+    const holidayList = document.getElementById('holiday-list');
+    const emptyState = document.getElementById('empty-state');
+    const syncToggle = document.getElementById('google-sync-toggle');
+    const profilePopup = document.getElementById('profile-popup');
+
+    // Handle Profile Popup
+    function toggleProfilePopup() {
+        profilePopup.classList.toggle('active');
+    }
+
+    function handleLogout() {
+        // Simulated logout
+        alert('Logging out...');
+        profilePopup.classList.remove('active');
+    }
+
+    // Close popups on click outside
+    window.addEventListener('click', (e) => {
+        if (!document.getElementById('profile-btn').contains(e.target) && !profilePopup.contains(e.target)) {
+            profilePopup.classList.remove('active');
+        }
+    });
+
+    // Handle Calendar Clicks
+    document.querySelectorAll('.day-cell:not(.is-holiday):not(.opacity-30)').forEach(cell => {
+        cell.addEventListener('click', function() {
+            if (this.classList.contains('selected')) {
+                this.classList.remove('selected', 'cyber-glow');
+            } else {
+                selectedCell = this;
+                openModal();
+            }
+        });
+    });
+
+    function openModal() {
+        modal.classList.add('active');
+        input.focus();
+    }
+
+    function closeModal() {
+        modal.classList.remove('active');
+        input.value = '';
+        selectedCell = null;
+    }
+
+    function confirmHoliday() {
+        const name = input.value.trim() || 'Holiday';
+        if (selectedCell) {
+            const dateStr = selectedCell.getAttribute('data-date');
+            const formattedDate = new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+            
+            addHolidayToList(name, formattedDate);
+            selectedCell.classList.add('selected', 'cyber-glow');
+        }
+        closeModal();
+        updateEmptyState();
+    }
+
+    function addHolidayToList(name, date) {
+        const id = Date.now();
+        const html = `
+            <div class="holiday-item glass-card rounded-xl p-4 flex items-center gap-4 transition-all animate-in fade-in slide-in-from-bottom-2 duration-300" data-holiday-id="${id}">
+                <div class="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined">event</span>
+                </div>
+                <div class="flex-1">
+                    <p class="holiday-title font-headline-md text-[16px] text-on-surface">${name}</p>
+                    <p class="holiday-date font-body-sm text-body-sm text-on-surface-variant">${date}</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="removeHoliday(this)" class="p-2 text-on-surface-variant hover:text-tertiary transition-colors">
+                        <span class="material-symbols-outlined text-[20px]">delete</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        holidayList.insertAdjacentHTML('afterbegin', html);
+        updateCount();
+    }
+
+    function removeHoliday(btn) {
+        const item = btn.closest('.holiday-item');
+        item.style.opacity = '0';
+        item.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            item.remove();
+            updateEmptyState();
+            updateCount();
+        }, 300);
+    }
+
+    function updateCount() {
+        const count = holidayList.querySelectorAll('.holiday-item').length;
+        document.getElementById('holiday-count').textContent = count;
+    }
+
+    function updateEmptyState() {
+        const count = holidayList.querySelectorAll('.holiday-item').length;
+        if (count === 0) {
+            emptyState.classList.remove('hidden');
+            emptyState.classList.add('flex');
+        } else {
+            emptyState.classList.add('hidden');
+            emptyState.classList.remove('flex');
+        }
+    }
+
+    // Google Sync Logic
+    syncToggle.addEventListener('change', function() {
+        if (this.checked) {
+            const btn = this;
+            btn.disabled = true;
+            setTimeout(() => {
+                addHolidayToList('Deepavali', 'Oct 31, 2024');
+                addHolidayToList('Halloween', 'Oct 31, 2024');
+                btn.disabled = false;
+                updateEmptyState();
+            }, 800);
+        }
+    });
+
+    // Close modal on escape
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            profilePopup.classList.remove('active');
+        }
+    });
+</script>
+<div class="fixed inset-0 z-[100] items-center justify-center p-gutter bg-black/60 backdrop-blur-sm hidden" id="date-picker-modal">
+<div class="glass-modal w-full max-w-sm rounded-2xl p-6 space-y-stack-md transform transition-all scale-100">
+<h3 class="font-headline-md text-on-surface">Select Month &amp; Year</h3>
+<div class="grid grid-cols-3 gap-2 py-2">
+<button class="p-2 rounded-lg text-body-sm hover:bg-primary/20 transition-colors">Jan</button>
+<button class="p-2 rounded-lg text-body-sm hover:bg-primary/20 transition-colors">Feb</button>
+<button class="p-2 rounded-lg text-body-sm hover:bg-primary/20 transition-colors">Mar</button>
+<button class="p-2 rounded-lg text-body-sm hover:bg-primary/20 transition-colors">Apr</button>
+<button class="p-2 rounded-lg text-body-sm hover:bg-primary/20 transition-colors">May</button>
+<button class="p-2 rounded-lg text-body-sm hover:bg-primary/20 transition-colors">Jun</button>
+<button class="p-2 rounded-lg text-body-sm hover:bg-primary/20 transition-colors">Jul</button>
+<button class="p-2 rounded-lg text-body-sm hover:bg-primary/20 transition-colors">Aug</button>
+<button class="p-2 rounded-lg text-body-sm hover:bg-primary/20 transition-colors">Sep</button>
+<button class="p-2 rounded-lg text-body-sm bg-primary text-on-primary font-bold">Oct</button>
+<button class="p-2 rounded-lg text-body-sm hover:bg-primary/20 transition-colors">Nov</button>
+<button class="p-2 rounded-lg text-body-sm hover:bg-primary/20 transition-colors">Dec</button>
+</div>
+<div class="flex items-center justify-between border-t border-white/10 pt-4">
+<span class="text-on-surface-variant font-label-caps">Year</span>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-primary">chevron_left</button>
+<span class="font-headline-md text-primary">2024</span>
+<button class="material-symbols-outlined text-primary">chevron_right</button>
+</div>
+</div>
+<div class="flex gap-3 pt-2">
+<button class="flex-1 px-4 py-3 rounded-lg font-label-caps text-label-caps text-on-surface-variant bg-surface-container-high transition-colors active:scale-95" onclick="document.getElementById('date-picker-modal').classList.add('hidden'); document.getElementById('date-picker-modal').classList.remove('flex');">CANCEL</button>
+<button class="flex-1 px-4 py-3 rounded-lg font-label-caps text-label-caps text-on-primary bg-primary transition-colors active:scale-95" onclick="document.getElementById('date-picker-modal').classList.add('hidden'); document.getElementById('date-picker-modal').classList.remove('flex');">APPLY</button>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>AttendCount Setup Wizard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+                  "on-surface-variant": "#c1c6d7",
+                  "on-primary-fixed": "#001a41",
+                  "tertiary-container": "#ff5545",
+                  "tertiary-fixed": "#ffdad5",
+                  "on-tertiary-fixed": "#410001",
+                  "on-error-container": "#ffdad6",
+                  "surface-container-highest": "#353534",
+                  "surface-container-low": "#1c1b1b",
+                  "on-tertiary-container": "#5c0002",
+                  "inverse-on-surface": "#313030",
+                  "on-tertiary-fixed-variant": "#930005",
+                  "error-container": "#93000a",
+                  "on-primary-fixed-variant": "#004493",
+                  "primary-container": "#4b8eff",
+                  "surface-bright": "#393939",
+                  "surface-dim": "#131313",
+                  "outline-variant": "#414755",
+                  "background": "#0A0A0A",
+                  "on-tertiary": "#690003",
+                  "inverse-primary": "#005bc1",
+                  "surface-container-lowest": "#0e0e0e",
+                  "surface-container": "#201f1f",
+                  "on-primary-container": "#00285c",
+                  "on-secondary": "#3f2e00",
+                  "on-surface": "#e5e2e1",
+                  "tertiary": "#ffb4aa",
+                  "outline": "#8b90a0",
+                  "surface": "#131313",
+                  "tertiary-fixed-dim": "#ffb4aa",
+                  "secondary-fixed": "#ffdf9e",
+                  "error": "#ffb4ab",
+                  "on-background": "#e5e2e1",
+                  "on-secondary-container": "#6a4e00",
+                  "on-primary": "#002e69",
+                  "surface-tint": "#adc6ff",
+                  "inverse-surface": "#e5e2e1",
+                  "secondary-fixed-dim": "#fabd00",
+                  "secondary-container": "#fabd00",
+                  "primary-fixed": "#d8e2ff",
+                  "on-secondary-fixed": "#261a00",
+                  "on-secondary-fixed-variant": "#5b4300",
+                  "surface-variant": "#353534",
+                  "secondary": "#ffdf9e",
+                  "primary": "#adc6ff",
+                  "on-error": "#690005",
+                  "primary-fixed-dim": "#adc6ff",
+                  "surface-container-high": "#2a2a2a"
+          },
+          "borderRadius": {
+                  "DEFAULT": "0.25rem",
+                  "lg": "0.5rem",
+                  "xl": "0.75rem",
+                  "full": "9999px"
+          },
+          "spacing": {
+                  "touch-target-min": "44px",
+                  "stack-sm": "8px",
+                  "safe-margin": "20px",
+                  "stack-md": "16px",
+                  "stack-lg": "32px",
+                  "gutter": "16px"
+          },
+          "fontFamily": {
+                  "display-stat": ["Inter"],
+                  "body-sm": ["Inter"],
+                  "headline-lg": ["Inter"],
+                  "label-caps": ["Inter"],
+                  "headline-md": ["Inter"],
+                  "body-lg": ["Inter"]
+          },
+          "fontSize": {
+                  "display-stat": ["48px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                  "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                  "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                  "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                  "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                  "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      background-color: #0A0A0A;
+      color: #e5e2e1;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .glass-input {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid rgba(173, 198, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+    .glass-input:focus {
+      outline: none;
+      border-bottom-color: #adc6ff;
+      background: rgba(173, 198, 255, 0.05);
+    }
+    .progress-track {
+      background: rgba(255, 255, 255, 0.05);
+      height: 4px;
+      border-radius: 2px;
+    }
+    .progress-bar {
+      background: #adc6ff;
+      height: 4px;
+      border-radius: 2px;
+      transition: width 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+    }
+    .step-content {
+      display: none;
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+    .step-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .inner-glow-btn {
+      box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.15);
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .timetable-slot {
+      border: 1px dashed rgba(173, 198, 255, 0.15);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .timetable-slot:hover {
+      border-color: rgba(173, 198, 255, 0.5);
+      background: rgba(173, 198, 255, 0.05);
+    }
+    .timetable-slot.occupied {
+      border-style: solid;
+      background: rgba(173, 198, 255, 0.1);
+      border-color: rgba(173, 198, 255, 0.3);
+    }
+    .timetable-slot.lab-block {
+      border-color: #fabd00;
+      background: rgba(250, 189, 0, 0.05);
+    }
+    .modal-overlay {
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+      transition: opacity 0.3s ease;
+    }
+    /* Fixed time input style for cyber aesthetic */
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+    }
+    
+    #profile-popup.hidden {
+      display: none;
+    }
+    #profile-popup {
+      animation: slideIn 0.2s ease-out forwards;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+<header class="fixed top-0 w-full z-40 bg-surface/80 backdrop-blur-xl border-b border-white/5 flex justify-between items-center px-safe-margin py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="account_balance">account_balance</span>
+<h1 class="font-headline-lg text-headline-lg font-bold tracking-tight text-primary">AttendCount</h1>
+</div>
+<div class="flex items-center relative">
+<button class="w-9 h-9 rounded-full overflow-hidden border border-primary/20 active:scale-95 transition-transform" onclick="toggleProfilePopup(event)">
+<img alt="User Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBlYCE2S20KC9KpBqFCQ8Ot0WKxsrREwpuY1lYJ_9QarTvP-OrtHjrAoqtliXGXQC4fRxSup71Z8m0xQPXvP-KH3vBGLGeoy71oYsODuGcPgxwhNYQ9OaegYe8beo29nvaoIlyjceowFskBQ5C_1LllRYltVCz7tT-ksxcQ3e30FOLtWSweWHhrmMZCYm52GztbC6UprKd-YOyJMBEZo3eIYMGCacjJ6m-Kr5Ls2zZZys99pdAtOEjDveXIrnvUF4uJAXiN4vaiFM8"/>
+</button>
+<!-- Logout Popup -->
+<div class="absolute right-0 top-full mt-2 w-48 glass-card rounded-xl overflow-hidden shadow-2xl hidden z-50 border-primary/20" id="profile-popup">
+<div class="p-3 border-b border-white/5">
+<p class="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-widest">Active Profile</p>
+<p class="font-body-sm text-on-surface font-semibold truncate">Felix Academic</p>
+</div>
+<button class="w-full flex items-center gap-3 px-4 py-3 hover:bg-error/10 text-error transition-colors group" onclick="logout()">
+<span class="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform" data-icon="logout">logout</span>
+<span class="font-label-caps text-label-caps">Log Out</span>
+</button>
+</div>
+</div>
+</header>
+<main class="flex-grow pt-24 pb-32 px-safe-margin max-w-2xl mx-auto w-full">
+<div class="mb-stack-lg">
+<div class="flex justify-between items-end mb-2">
+<span class="font-label-caps text-label-caps text-primary tracking-widest uppercase" id="step-indicator">Step 1 of 2</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant" id="step-title">Subject Configuration</span>
+</div>
+<div class="progress-track w-full overflow-hidden">
+<div class="progress-bar" id="progress-indicator" style="width: 50%;"></div>
+</div>
+</div>
+<!-- Step 1: Subjects -->
+<div class="step-content active" id="step-1">
+<div class="mb-stack-lg">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-2">Define Your Courses</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Enter the subjects you are tracking this semester.</p>
+</div>
+<div class="space-y-stack-md" id="subject-container">
+<!-- Initial Subject 1 -->
+<div class="glass-card p-stack-md rounded-xl space-y-stack-md relative subject-entry">
+<div class="flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-primary uppercase opacity-70">Subject Name</label>
+<input class="glass-input subject-name w-full py-2 font-body-lg text-body-lg text-on-surface placeholder:text-on-surface-variant/30 bg-transparent" placeholder="e.g. DS" type="text" value="Data Structures"/>
+</div>
+<div class="flex items-center gap-gutter">
+<div class="flex-1 flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-primary uppercase opacity-70">Type</label>
+<div class="relative w-full group">
+<div class="w-full bg-transparent border-b-2 border-outline-variant flex items-center justify-between py-2 cursor-pointer group-hover:border-primary transition-colors">
+<span class="text-body-lg text-on-surface font-body-lg">Theory</span>
+<span class="material-symbols-outlined text-primary opacity-70" data-icon="expand_more">expand_more</span>
+</div>
+<div class="absolute top-full left-0 w-full z-50 mt-1 bg-surface-container-low border border-white/10 rounded-lg overflow-hidden shadow-2xl hidden group-focus-within:block">
+<div class="px-4 py-3 bg-primary text-on-primary font-body-lg text-body-lg cursor-pointer">Theory</div>
+<div class="px-4 py-3 hover:bg-white/5 text-on-surface font-body-lg text-body-lg cursor-pointer transition-colors">Laboratory</div>
+</div>
+</div>
+</div>
+<div class="pt-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-error/60 hover:text-error hover:bg-error/10 transition-colors" onclick="this.closest('.glass-card').remove()">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Initial Subject 2 -->
+<div class="glass-card p-stack-md rounded-xl space-y-stack-md subject-entry">
+<div class="flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-primary uppercase opacity-70">Subject Name</label>
+<input class="glass-input subject-name w-full py-2 font-body-lg text-body-lg text-on-surface placeholder:text-on-surface-variant/30 bg-transparent" placeholder="e.g. ET" type="text" value="Embedded Systems"/>
+</div>
+<div class="flex items-center gap-gutter">
+<div class="flex-1 flex flex-col gap-1">
+<label class="font-label-caps text-label-caps text-primary uppercase opacity-70">Type</label>
+<div class="relative w-full group">
+<div class="w-full bg-transparent border-b-2 border-outline-variant flex items-center justify-between py-2 cursor-pointer group-hover:border-primary transition-colors">
+<span class="text-body-lg text-on-surface font-body-lg">Laboratory</span>
+<span class="material-symbols-outlined text-primary opacity-70" data-icon="expand_more">expand_more</span>
+</div>
+<div class="absolute top-full left-0 w-full z-50 mt-1 bg-surface-container-low border border-white/10 rounded-lg overflow-hidden shadow-2xl hidden group-focus-within:block">
+<div class="px-4 py-3 hover:bg-white/5 text-on-surface font-body-lg text-body-lg cursor-pointer transition-colors">Theory</div>
+<div class="px-4 py-3 bg-primary text-on-primary font-body-lg text-body-lg cursor-pointer">Laboratory</div>
+</div>
+</div>
+</div>
+<div class="pt-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-error/60 hover:text-error hover:bg-error/10 transition-colors" onclick="this.closest('.glass-card').remove()">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<button class="mt-stack-lg w-full py-4 border-2 border-dashed border-primary/20 rounded-xl font-label-caps text-label-caps text-primary flex items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/5 transition-all" onclick="addSubject()">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+        ADD ANOTHER SUBJECT
+      </button>
+</div>
+<!-- Step 2: Timetable Builder -->
+<div class="step-content" id="step-2">
+<div class="mb-stack-lg">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-2">Build Your Schedule</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Tap any slot to assign a subject. Set times below to update them globally.</p>
+</div>
+<!-- Global Slot Timings -->
+<div class="mb-stack-lg glass-card p-6 rounded-2xl border-primary/20">
+<div class="mb-4">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-sm">schedule</span>
+<h3 class="font-headline-md text-headline-md text-primary">Global Slot Timings</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Changing a slot time below updates that specific slot for <span class="text-primary font-bold">ALL days (Mon-Sat)</span>.</p>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="global-timings-container">
+<!-- Slot Timing Row 1 -->
+<div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant w-12 shrink-0">Slot 1</span>
+<div class="flex gap-2 flex-1">
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(0, this.value, 'start')" type="time" value="09:00"/>
+</div>
+<span class="text-on-surface-variant/40 mt-1">-</span>
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(0, this.value, 'end')" type="time" value="10:00"/>
+</div>
+</div>
+</div>
+<!-- Slot Timing Row 2 -->
+<div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant w-12 shrink-0">Slot 2</span>
+<div class="flex gap-2 flex-1">
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(1, this.value, 'start')" type="time" value="10:00"/>
+</div>
+<span class="text-on-surface-variant/40 mt-1">-</span>
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(1, this.value, 'end')" type="time" value="11:00"/>
+</div>
+</div>
+</div>
+<!-- Slot Timing Row 3 -->
+<div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant w-12 shrink-0">Slot 3</span>
+<div class="flex gap-2 flex-1">
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(2, this.value, 'start')" type="time" value="11:00"/>
+</div>
+<span class="text-on-surface-variant/40 mt-1">-</span>
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(2, this.value, 'end')" type="time" value="12:00"/>
+</div>
+</div>
+</div>
+<!-- Slot Timing Row 4 -->
+<div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant w-12 shrink-0">Slot 4</span>
+<div class="flex gap-2 flex-1">
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(3, this.value, 'start')" type="time" value="13:00"/>
+</div>
+<span class="text-on-surface-variant/40 mt-1">-</span>
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(3, this.value, 'end')" type="time" value="14:00"/>
+</div>
+</div>
+</div>
+<!-- Slot Timing Row 5 -->
+<div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant w-12 shrink-0">Slot 5</span>
+<div class="flex gap-2 flex-1">
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(4, this.value, 'start')" type="time" value="14:00"/>
+</div>
+<span class="text-on-surface-variant/40 mt-1">-</span>
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(4, this.value, 'end')" type="time" value="15:00"/>
+</div>
+</div>
+</div>
+<!-- Slot Timing Row 6 -->
+<div class="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl gap-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant w-12 shrink-0">Slot 6</span>
+<div class="flex gap-2 flex-1">
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(5, this.value, 'start')" type="time" value="15:00"/>
+</div>
+<span class="text-on-surface-variant/40 mt-1">-</span>
+<div class="flex-1">
+<input class="glass-input w-full py-1 text-sm text-on-surface bg-transparent text-center" onchange="updateGlobalTimes(5, this.value, 'end')" type="time" value="16:00"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Weekly Grid -->
+<div class="space-y-8" id="timetable-grid">
+<!-- Days will be populated here -->
+</div>
+</div>
+</main>
+<!-- Assignment Modal (Bottom Sheet Style) -->
+<div class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 modal-overlay hidden" id="assignment-modal" onclick="closeModal()">
+<div class="glass-card w-full max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden animate-in slide-in-from-bottom-10 duration-300" onclick="event.stopPropagation()">
+<div class="p-6 space-y-6">
+<div class="flex justify-between items-center">
+<div>
+<h3 class="font-headline-md text-on-surface" id="modal-title">Assign Subject</h3>
+<p class="text-xs text-primary font-bold uppercase tracking-wider" id="modal-subtitle">Monday • Slot 1</p>
+</div>
+<button class="p-2 rounded-full hover:bg-white/10" onclick="closeModal()">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<div class="space-y-4">
+<div class="p-3 bg-primary/5 border border-primary/20 rounded-xl" id="lab-note">
+<p class="text-[10px] text-primary uppercase font-bold mb-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">info</span> Laboratory Note
+          </p>
+<p class="text-xs text-on-surface-variant">Laboratory subjects occupy <span class="text-secondary font-bold">3 consecutive slots</span>. Ensure enough slots are free.</p>
+</div>
+<div class="space-y-3">
+<label class="font-label-caps text-on-surface-variant uppercase text-[10px] tracking-widest">Select Subject</label>
+<div class="grid grid-cols-1 gap-2 max-h-[40vh] overflow-y-auto scrollbar-hide" id="modal-subject-list">
+<!-- Populated dynamically -->
+</div>
+<button class="w-full py-3 rounded-xl border border-error/30 text-error text-xs font-bold uppercase tracking-widest hover:bg-error/5 transition-colors mt-2" onclick="clearSlot()">
+<span class="material-symbols-outlined text-sm align-middle mr-1">block</span> Clear Slot
+        </button>
+</div>
+</div>
+<div class="flex gap-3 pt-2">
+<button class="flex-1 py-4 rounded-xl bg-white/5 text-on-surface-variant font-label-caps text-xs uppercase" onclick="closeModal()">Cancel</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Sticky Bottom Controls -->
+<div class="fixed bottom-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-t border-white/5 px-safe-margin pt-4 pb-10 flex gap-gutter">
+<button class="hidden flex-1 py-4 rounded-xl font-label-caps text-label-caps text-on-surface-variant border border-white/10 hover:bg-white/5 transition-colors uppercase" id="btn-back" onclick="prevStep()">
+      Back
+    </button>
+<button class="flex-[2] py-4 rounded-xl bg-primary text-on-primary-fixed font-label-caps text-label-caps font-bold inner-glow-btn transition-all active:scale-95 shadow-[0_0_20px_rgba(173,198,255,0.2)] uppercase" id="btn-next" onclick="nextStep()">
+      Next Step
+    </button>
+</div>
+<script>
+    let currentStep = 1;
+    const totalSteps = 2;
+    let selectedSlot = null;
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const slotCount = 6;
+    
+    // Default slot times
+    const slotTimes = [
+      { start: '09:00', end: '10:00' },
+      { start: '10:00', end: '11:00' },
+      { start: '11:00', end: '12:00' },
+      { start: '13:00', end: '14:00' },
+      { start: '14:00', end: '15:00' },
+      { start: '15:00', end: '16:00' }
+    ];
+
+    function toggleProfilePopup(e) {
+      e.stopPropagation();
+      const popup = document.getElementById('profile-popup');
+      popup.classList.toggle('hidden');
+    }
+
+    function logout() {
+      if(confirm('Are you sure you want to log out?')) {
+        alert('Logging out...');
+      }
+    }
+
+    // Close popups when clicking outside
+    window.addEventListener('click', () => {
+      document.getElementById('profile-popup').classList.add('hidden');
+    });
+
+    function nextStep() {
+      if (currentStep < totalSteps) {
+        document.getElementById(`step-${currentStep}`).classList.remove('active');
+        currentStep++;
+        document.getElementById(`step-${currentStep}`).classList.add('active');
+        if (currentStep === 2) buildTimetableGrid();
+        updateUI();
+        window.scrollTo(0, 0);
+      } else {
+        alert('Setup Complete! Synchronizing with portal...');
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 1) {
+        document.getElementById(`step-${currentStep}`).classList.remove('active');
+        currentStep--;
+        document.getElementById(`step-${currentStep}`).classList.add('active');
+        updateUI();
+        window.scrollTo(0, 0);
+      }
+    }
+
+    function updateUI() {
+      const progress = (currentStep / totalSteps) * 100;
+      document.getElementById('progress-indicator').style.width = `${progress}%`;
+      document.getElementById('step-indicator').innerText = `Step ${currentStep} of ${totalSteps}`;
+      
+      const nextBtn = document.getElementById('btn-next');
+      const backBtn = document.getElementById('btn-back');
+      const title = document.getElementById('step-title');
+
+      if (currentStep === 1) {
+        backBtn.classList.add('hidden');
+        nextBtn.innerText = 'Next Step';
+        title.innerText = 'Subject Configuration';
+      } else {
+        backBtn.classList.remove('hidden');
+        nextBtn.innerText = 'Complete Setup';
+        title.innerText = 'Timetable Builder';
+      }
+    }
+
+    function addSubject() {
+      const container = document.getElementById('subject-container');
+      const newSubject = document.createElement('div');
+      newSubject.className = 'glass-card p-stack-md rounded-xl space-y-stack-md animate-in fade-in slide-in-from-bottom-4 duration-300 subject-entry';
+      newSubject.innerHTML = `
+        <div class="flex flex-col gap-1">
+          <label class="font-label-caps text-label-caps text-primary uppercase opacity-70">Subject Name</label>
+          <input type="text" placeholder="Enter course name" class="glass-input subject-name w-full py-2 font-body-lg text-body-lg text-on-surface placeholder:text-on-surface-variant/30 bg-transparent">
+        </div>
+        <div class="flex items-center gap-gutter">
+          <div class="flex-grow flex flex-col gap-1">
+            <label class="font-label-caps text-label-caps text-primary uppercase opacity-70">Type</label>
+            <select class="glass-input subject-type w-full py-2 font-body-lg text-body-lg text-on-surface appearance-none cursor-pointer">
+              <option value="theory" class="bg-surface">Theory</option>
+              <option value="lab" class="bg-surface">Laboratory</option>
+            </select>
+          </div>
+          <div class="pt-4">
+            <button onclick="this.closest('.glass-card').remove()" class="w-10 h-10 flex items-center justify-center rounded-full text-error/60 hover:text-error hover:bg-error/10 transition-colors">
+              <span class="material-symbols-outlined">delete</span>
+            </button>
+          </div>
+        </div>
+      `;
+      container.appendChild(newSubject);
+    }
+
+    function updateGlobalTimes(slotIndex, val, part) {
+      slotTimes[slotIndex][part] = val;
+      // Update all visual time displays in the grid for this slot index
+      const displays = document.querySelectorAll(`.slot-time-display-${slotIndex}`);
+      displays.forEach(display => {
+        display.innerText = `${slotTimes[slotIndex].start} - ${slotTimes[slotIndex].end}`;
+      });
+    }
+
+    function buildTimetableGrid() {
+      const grid = document.getElementById('timetable-grid');
+      grid.innerHTML = '';
+      
+      days.forEach(day => {
+        const daySection = document.createElement('div');
+        daySection.className = 'day-row';
+        daySection.innerHTML = `
+          <h3 class="font-label-caps text-on-surface-variant uppercase mb-3 border-l-2 border-primary/30 pl-3 tracking-widest font-bold">${day}</h3>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="grid-${day}"></div>
+        `;
+        grid.appendChild(daySection);
+        
+        const dayGrid = daySection.querySelector(`#grid-${day}`);
+        for (let i = 0; i < slotCount; i++) {
+          const slot = document.createElement('div');
+          slot.className = 'timetable-slot glass-card rounded-xl p-3 flex flex-col gap-1 min-h-[90px] relative transition-all duration-300';
+          slot.id = `slot-${day}-${i}`;
+          slot.onclick = () => openAssignmentModal(day, i);
+          
+          slot.innerHTML = `
+            <div class="flex justify-between items-start">
+              <span class="text-[10px] text-on-surface-variant/40 uppercase font-bold">Slot ${i + 1}</span>
+              <span class="material-symbols-outlined text-[16px] text-primary/20 slot-icon">add_circle</span>
+            </div>
+            <div class="slot-time-display-${i} text-[10px] text-primary/60 font-semibold mt-1">
+              ${slotTimes[i].start} - ${slotTimes[i].end}
+            </div>
+            <div class="slot-content text-[13px] font-bold text-on-surface-variant/20 italic mt-1 leading-tight">Empty</div>
+          `;
+          dayGrid.appendChild(slot);
+        }
+      });
+    }
+
+    function openAssignmentModal(day, slotIndex) {
+      selectedSlot = { day, slotIndex };
+      const modal = document.getElementById('assignment-modal');
+      const listContainer = document.getElementById('modal-subject-list');
+      const subtitle = document.getElementById('modal-subtitle');
+      
+      subtitle.innerText = `${day} • Slot ${slotIndex + 1}`;
+      listContainer.innerHTML = '';
+      
+      const subjects = Array.from(document.querySelectorAll('.subject-entry')).map(entry => ({
+        name: entry.querySelector('.subject-name').value.trim(),
+        type: (entry.querySelector('.subject-type') ? entry.querySelector('.subject-type').value : entry.querySelector('.absolute div:first-child')?.innerText?.toLowerCase() === 'theory' ? 'theory' : 'lab')
+      })).filter(s => s.name);
+
+      if (subjects.length === 0) {
+        listContainer.innerHTML = '<div class="p-6 text-center text-on-surface-variant text-sm italic">No subjects defined in Step 1. Go back and add some!</div>';
+      } else {
+        subjects.forEach((sub) => {
+          const btn = document.createElement('button');
+          btn.className = 'w-full text-left p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-primary/20 hover:border-primary/50 transition-all flex justify-between items-center group';
+          btn.innerHTML = `
+            <div>
+              <span class="block font-bold text-on-surface group-hover:text-primary transition-colors">${sub.name}</span>
+              <span class="text-[10px] text-primary/60 uppercase tracking-widest">${sub.type}</span>
+            </div>
+            ${sub.type === 'lab' ? '<span class="text-[10px] text-secondary font-bold px-2 py-1 bg-secondary/10 border border-secondary/20 rounded">LAB BLOCK</span>' : '<span class="material-symbols-outlined text-primary/40 group-hover:text-primary text-sm">arrow_forward</span>'}
+          `;
+          btn.onclick = () => confirmAssignment(sub);
+          listContainer.appendChild(btn);
+        });
+      }
+
+      modal.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('assignment-modal').classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    function clearSlot() {
+      if (!selectedSlot) return;
+      const { day, slotIndex } = selectedSlot;
+      const slot = document.getElementById(`slot-${day}-${slotIndex}`);
+      
+      slot.classList.remove('occupied', 'lab-block', 'border-primary/50', 'border-secondary/50');
+      slot.querySelector('.slot-content').innerHTML = 'Empty';
+      slot.querySelector('.slot-content').classList.add('text-on-surface-variant/20', 'italic');
+      slot.querySelector('.slot-icon').innerText = 'add_circle';
+      slot.querySelector('.slot-icon').classList.remove('text-primary', 'text-secondary');
+      
+      closeModal();
+    }
+
+    function confirmAssignment(subject) {
+      const { day, slotIndex } = selectedSlot;
+      
+      const applyToSlot = (d, idx, isLead = true) => {
+        const slot = document.getElementById(`slot-${d}-${idx}`);
+        if (!slot) return;
+        
+        slot.classList.add('occupied');
+        slot.querySelector('.slot-content').classList.remove('text-on-surface-variant/20', 'italic');
+        slot.querySelector('.slot-content').classList.add('text-on-surface');
+        
+        if (subject.type === 'lab') {
+          slot.classList.add('lab-block', 'border-secondary/30');
+          slot.querySelector('.slot-icon').innerText = 'science';
+          slot.querySelector('.slot-icon').classList.add('text-secondary');
+          slot.querySelector('.slot-content').innerHTML = `
+            <div class="flex flex-col">
+              <span class="text-secondary truncate">${subject.name}</span>
+              <span class="text-[8px] opacity-40 uppercase tracking-tighter">Laboratory</span>
+            </div>
+          `;
+        } else {
+          slot.classList.add('border-primary/30');
+          slot.querySelector('.slot-icon').innerText = 'check_circle';
+          slot.querySelector('.slot-icon').classList.add('text-primary');
+          slot.querySelector('.slot-content').innerHTML = `
+            <div class="flex flex-col">
+              <span class="text-primary truncate">${subject.name}</span>
+              <span class="text-[8px] opacity-40 uppercase tracking-tighter">Theory</span>
+            </div>
+          `;
+        }
+      };
+
+      if (subject.type === 'lab') {
+        // Lab auto-handling: occupy 3 slots
+        if (slotIndex > slotCount - 3) {
+          alert('Not enough remaining slots for a 3-period Laboratory session. Please pick an earlier slot.');
+          return;
+        }
+        applyToSlot(day, slotIndex);
+        applyToSlot(day, slotIndex + 1, false);
+        applyToSlot(day, slotIndex + 2, false);
+      } else {
+        applyToSlot(day, slotIndex);
+      }
+
+      closeModal();
+    }
+  </script>
+</body></html>

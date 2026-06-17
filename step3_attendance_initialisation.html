@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>AttendCount | Setup Wizard - Step 3</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#131313",
+                        "on-primary": "#002e69",
+                        "primary-fixed": "#d8e2ff",
+                        "primary-container": "#4b8eff",
+                        "surface-dim": "#131313",
+                        "secondary-fixed-dim": "#fabd00",
+                        "outline-variant": "#414755",
+                        "on-tertiary": "#690003",
+                        "on-secondary-fixed-variant": "#5b4300",
+                        "on-primary-fixed": "#001a41",
+                        "outline": "#8b90a0",
+                        "surface-variant": "#353534",
+                        "secondary": "#ffdf9e",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-surface": "#e5e2e1",
+                        "on-secondary-fixed": "#261a00",
+                        "on-error": "#690005",
+                        "tertiary-container": "#ff5545",
+                        "on-secondary": "#3f2e00",
+                        "surface-tint": "#adc6ff",
+                        "on-tertiary-container": "#5c0002",
+                        "on-primary-container": "#00285c",
+                        "secondary-fixed": "#ffdf9e",
+                        "primary": "#adc6ff",
+                        "on-surface-variant": "#c1c6d7",
+                        "on-background": "#e5e2e1",
+                        "background": "#131313",
+                        "surface-container": "#201f1f",
+                        "inverse-primary": "#005bc1",
+                        "tertiary": "#ffb4aa",
+                        "on-tertiary-fixed": "#410001",
+                        "inverse-on-surface": "#313030"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "touch-target-min": "44px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "stack-lg": "32px",
+                        "safe-margin": "20px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "display-stat": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "display-stat": ["48px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0A0A0A;
+            color: #e5e2e1;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .glass-card {
+            background: rgba(32, 31, 31, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .input-ghost {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid rgba(139, 144, 160, 0.3);
+            border-radius: 0;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-ghost:focus {
+            outline: none;
+            border-bottom-color: #adc6ff;
+            box-shadow: none;
+        }
+
+        .step-gradient {
+            background: linear-gradient(90deg, #adc6ff 0%, #4b8eff 100%);
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .ring-container {
+            position: relative;
+            display: inline-flex;
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        #logout-popup.hidden {
+            display: none;
+        }
+    </style>
+<style class="">
+  /* Hide spinners for Chrome, Safari, Edge, Opera */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Hide spinners for Firefox */
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+</style></head>
+<body class="bg-background text-on-background min-h-screen pb-32">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-safe-margin h-16">
+<div class="flex items-center gap-stack-md">
+<span class="material-symbols-outlined text-primary">account_balance</span>
+<h1 class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">AttendCount</h1>
+</div>
+<div class="relative">
+<button class="w-10 h-10 rounded-full border-2 border-primary/20 overflow-hidden active:scale-95 transition-transform" id="profile-trigger">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-Y6lj1TTqu2WNH5-z8giiLGxq6w6EHZ1TLhdoKqRMi4pVmMVqgz83QnZwfVDdoQM9h3gJ5HCObfrxayZe6VXsq6NpBI9qyw72-d6nCrK8AS0uQMgjygdQUHfs6cvmEgv00YBmrxNoUgXHYjdlslzvjY1NqJZ6h32RGlopikQ7jjerY8b2lBcvnH0KdxnmlGGXsb1Wqh23qHz_6OjdKE6k8WRnwmWpk7LG-Z04jMcV1hzR5O4APIADjo9vVhqbWeLbRwKh513I5K8"/>
+</button>
+<!-- Logout Popup -->
+<div class="hidden absolute right-0 mt-3 w-40 glass-card rounded-xl p-2 shadow-2xl border-white/10 z-[60]" id="logout-popup">
+<button class="w-full flex items-center gap-3 px-3 py-2 text-error hover:bg-error/10 rounded-lg transition-colors font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span>Log Out</span>
+</button>
+</div>
+</div>
+</header>
+<main class="pt-24 px-safe-margin max-w-lg mx-auto">
+<!-- Progress Indicator -->
+<div class="mb-stack-lg">
+<div class="flex justify-between items-end mb-2">
+<span class="font-label-caps text-label-caps text-primary uppercase tracking-widest">Step 3 of 3</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Finalizing Profile</span>
+</div>
+<div class="w-full h-1 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full step-gradient w-full"></div>
+</div>
+<h2 class="font-headline-md text-headline-md mt-stack-md">Attendance Initialization</h2>
+</div>
+<!-- Header Context -->
+<div class="mb-stack-lg">
+<h3 class="font-headline-lg text-headline-lg mb-1">Initial Attendance</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant italic">
+                (If you are from start of semester start with zero. If not, enter held and attended classes)
+            </p>
+</div>
+<!-- Subject List (Vertical Bento Style) -->
+<div class="space-y-gutter"><div class="glass-card p-8 rounded-2xl border-l-4 border-l-secondary-container/50" style="box-shadow: none;"><div class="flex items-center gap-3 mb-8"><div class="w-10 h-10 rounded-lg bg-primary-container/20 flex items-center justify-center"><span class="material-symbols-outlined text-primary">analytics</span></div><div><h4 class="font-headline-md text-headline-md text-on-surface">Overall Attendance</h4><span class="font-label-caps text-label-caps text-on-surface-variant">Cumulative Summary</span></div></div><div class="grid grid-cols-1 gap-stack-lg"><div class="relative"><label class="block font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Total Classes Held</label><input class="input-ghost w-full py-4 font-display-stat text-4xl text-on-surface placeholder:text-surface-variant bg-transparent" placeholder="0" type="number"/></div><div class="relative"><label class="block font-label-caps text-label-caps text-on-surface-variant mb-1 uppercase">Total Classes Attended</label><input class="input-ghost w-full py-4 font-display-stat text-4xl text-primary placeholder:text-surface-variant bg-transparent text-on-surface" placeholder="0" type="number"/></div></div></div></div>
+</main>
+<!-- Bottom Navigation Area -->
+<div class="fixed bottom-0 left-0 w-full px-safe-margin pb-safe-margin pt-6 bg-gradient-to-t from-background via-background to-transparent z-40">
+<button class="w-full h-14 bg-primary text-on-primary font-bold rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-[0_0_20px_rgba(173,198,255,0.3)]">
+<span class="font-headline-md text-headline-md uppercase tracking-tight">Complete Setup</span>
+<span class="material-symbols-outlined">check_circle</span>
+</button>
+<p class="text-center mt-3 font-body-sm text-body-sm text-on-surface-variant">
+            You can always modify these in <span class="text-primary">Settings</span> later.
+        </p>
+</div>
+<!-- Background Atmospheric Effect -->
+<div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+<div class="absolute top-1/4 -right-20 w-64 h-64 bg-primary-container/10 rounded-full blur-[100px]"></div>
+<div class="absolute bottom-1/4 -left-20 w-80 h-80 bg-secondary-container/5 rounded-full blur-[120px]"></div>
+</div>
+<script>
+        // Profile popup logic
+        const profileTrigger = document.getElementById('profile-trigger');
+        const logoutPopup = document.getElementById('logout-popup');
+
+        profileTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            logoutPopup.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!logoutPopup.contains(e.target) && !profileTrigger.contains(e.target)) {
+                logoutPopup.classList.add('hidden');
+            }
+        });
+
+        // Micro-interactions for inputs
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.closest('.glass-card').classList.add('border-primary/30');
+                this.parentElement.closest('.glass-card').style.boxShadow = "0 10px 30px -10px rgba(75, 142, 255, 0.1)";
+            });
+            input.addEventListener('blur', function() {
+                this.parentElement.closest('.glass-card').classList.remove('border-primary/30');
+                this.parentElement.closest('.glass-card').style.boxShadow = "none";
+            });
+        });
+
+        // Simple attendance logic visualization
+        document.querySelectorAll('.glass-card').forEach(card => {
+            const inputs = card.querySelectorAll('input');
+            const held = inputs[0];
+            const attended = inputs[1];
+
+            const update = () => {
+                const hVal = parseFloat(held.value) || 0;
+                const aVal = parseFloat(attended.value) || 0;
+                if(hVal > 0) {
+                    const pct = Math.min(100, (aVal / hVal) * 100);
+                }
+            };
+
+            held.addEventListener('input', update);
+            attended.addEventListener('input', update);
+        });
+    </script>
+</body></html>

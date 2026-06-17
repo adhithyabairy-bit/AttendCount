@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+    :root {
+      --background: #131313;
+    }
+    body {
+      background-color: var(--background);
+      color: #e5e2e1;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-top-color: rgba(255, 255, 255, 0.15);
+    }
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.35s;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .safe-top {
+      padding-top: env(safe-area-inset-top);
+    }
+    /* Hide scrollbar */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    #logout-popup.hidden {
+      display: none;
+    }
+  </style>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-on-surface": "#313030",
+            "outline": "#8b90a0",
+            "on-surface": "#e5e2e1",
+            "tertiary-container": "#ff5545",
+            "on-secondary-fixed-variant": "#5b4300",
+            "surface-container-high": "#2a2a2a",
+            "on-background": "#e5e2e1",
+            "surface-variant": "#353534",
+            "secondary-fixed": "#ffdf9e",
+            "error-container": "#93000a",
+            "on-tertiary": "#690003",
+            "on-tertiary-fixed-variant": "#930005",
+            "surface-dim": "#131313",
+            "primary-fixed-dim": "#adc6ff",
+            "on-surface-variant": "#c1c6d7",
+            "secondary-container": "#fabd00",
+            "secondary": "#ffdf9e",
+            "outline-variant": "#414755",
+            "tertiary": "#ffb4aa",
+            "primary-fixed": "#d8e2ff",
+            "surface-tint": "#adc6ff",
+            "on-primary-container": "#00285c",
+            "surface-bright": "#393939",
+            "surface": "#131313",
+            "on-primary-fixed": "#001a41",
+            "on-secondary-container": "#6a4e00",
+            "primary": "#adc6ff",
+            "tertiary-fixed": "#ffdad5",
+            "error": "#ffb4ab",
+            "surface-container": "#201f1f",
+            "inverse-primary": "#005bc1",
+            "on-tertiary-container": "#5c0002",
+            "on-tertiary-fixed": "#410001",
+            "surface-container-highest": "#353534",
+            "on-error": "#690005",
+            "background": "#131313",
+            "surface-container-low": "#1c1b1b",
+            "primary-container": "#4b8eff",
+            "on-primary": "#002e69",
+            "tertiary-fixed-dim": "#ffb4aa",
+            "secondary-fixed-dim": "#fabd00",
+            "on-secondary-fixed": "#261a00",
+            "on-error-container": "#ffdad6",
+            "on-secondary": "#3f2e00",
+            "surface-container-lowest": "#0e0e0e",
+            "inverse-surface": "#e5e2e1",
+            "on-primary-fixed-variant": "#004493"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "safe-margin": "20px",
+            "gutter": "16px",
+            "stack-sm": "8px",
+            "touch-target-min": "44px",
+            "stack-md": "16px",
+            "stack-lg": "32px"
+          },
+          "fontFamily": {
+            "headline-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-lg": ["Inter"],
+            "label-caps": ["Inter"],
+            "display-stat": ["Inter"],
+            "body-sm": ["Inter"]
+          },
+          "fontSize": {
+            "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+            "display-stat": ["48px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface overflow-x-hidden no-scrollbar">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-safe-margin h-touch-target-min">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary hover:opacity-80 transition-opacity active:scale-95 transition-transform" data-icon="account_balance">account_balance</span>
+<h1 class="font-headline-lg text-headline-lg font-bold tracking-tight text-primary">AttendCount</h1>
+</div>
+<div class="relative">
+<button class="w-8 h-8 rounded-full overflow-hidden border border-primary/20 active:scale-95 transition-transform focus:outline-none" id="profile-trigger">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A high-quality professional headshot avatar of a young university student with a focused expression. The portrait is set against a dark, minimalist background with subtle blue rim lighting to match a cyber-academic aesthetic. The lighting is crisp and modern, emphasizing a digital-first, tech-savvy personality consistent with a high-end educational app interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD81f6-t_i-9BDNRmamLNMTXq_JNpreJ_mA3JHG2uIVJYVt3wjt7qv96OjKmlHA21cxtYb38fzZdDuzsI5pm9-tF2yQOJh-s5F8C12B2rJaN0LX3GlLgdGnUevLgAUeyAgLpK-Fvti2X8T6HKRUvWC3vnPxfX-wbLhnojW1zDjvZUaNQsuXkq7Tg6GTTPUboqtobwexxcceJU1voGUJYBzYJmzK68OY7q9HIEeu0zFhHZWEft2YgCznvBht9kcaioB-RsWaKbx5ADs"/>
+</button>
+<!-- Logout Popup -->
+<div class="hidden absolute right-0 top-10 w-32 glass-card rounded-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 origin-top-right" id="logout-popup">
+<button class="w-full px-4 py-3 text-left font-body-sm text-error flex items-center gap-2 hover:bg-error/10 transition-colors active:bg-error/20">
+<span class="material-symbols-outlined text-[18px]" data-icon="logout">logout</span>
+<span>Log Out</span>
+</button>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-safe-margin min-h-screen relative overflow-hidden">
+<!-- Page Header -->
+<section class="relative z-10 mb-4">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-1">My Classes</h2>
+<p class="font-body-sm text-outline">Manage your academic attendance tracking.</p>
+</section><div class="glass-card rounded-xl p-stack-md mb-stack-md flex justify-between items-center relative z-10 border-primary/20"><div class="flex flex-col"><span class="font-label-caps text-outline text-[10px] uppercase tracking-widest mb-1">Total Held</span><span class="font-headline-lg text-primary text-[32px] font-bold">126</span></div><div class="h-10 w-[1px] bg-white/10"></div><div class="flex flex-col items-end"><span class="font-label-caps text-outline text-[10px] uppercase tracking-widest mb-1">Total Attended</span><span class="font-headline-lg text-on-surface text-[32px] font-bold">105</span></div></div>
+<!-- Subjects List (Bento-style Glass Cards) -->
+<div class="grid grid-cols-1 gap-stack-md relative z-10">
+<!-- Subject Card 1: Advanced Algorithms -->
+<div class="glass-card rounded-xl p-stack-md flex items-center justify-between group active:scale-[0.98] transition-transform">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Advanced Algorithms</h3>
+</div>
+<div class="flex items-center gap-4 text-outline mb-3">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="history">history</span>
+<span class="font-body-sm">Held: 24</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="check_circle">check_circle</span>
+<span class="font-body-sm text-on-surface">Attended: 21</span>
+</div>
+</div>
+<!-- Progress Bar Component -->
+<div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 87.5%"></div>
+</div>
+</div>
+<div class="ml-stack-md flex flex-col items-center gap-2">
+<div class="relative w-14 h-14 flex items-center justify-center">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<path class="text-white/5 stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+<path class="text-primary stroke-current progress-ring-circle" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="87.5, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<span class="absolute font-label-caps text-on-surface text-[10px]">88%</span>
+</div>
+</div>
+</div>
+<!-- Subject Card 2: Physics Lab - II -->
+<div class="glass-card rounded-xl p-stack-md flex items-center justify-between group active:scale-[0.98] transition-transform">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Physics Lab - II</h3>
+</div>
+<div class="flex items-center gap-4 text-outline mb-3">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="history">history</span>
+<span class="font-body-sm">Held: 12</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="check_circle">check_circle</span>
+<span class="font-body-sm text-on-surface">Attended: 9</span>
+</div>
+</div>
+<div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-secondary" style="width: 75%"></div>
+</div>
+</div>
+<div class="ml-stack-md flex flex-col items-center gap-2">
+<div class="relative w-14 h-14 flex items-center justify-center">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<path class="text-white/5 stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+<path class="text-secondary stroke-current progress-ring-circle" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="75, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<span class="absolute font-label-caps text-on-surface text-[10px]">75%</span>
+</div>
+</div>
+</div>
+<!-- Subject Card 3: Digital Marketing (Warning State) -->
+<div class="glass-card rounded-xl p-stack-md flex items-center justify-between group active:scale-[0.98] transition-transform">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-2 h-2 rounded-full bg-tertiary-container"></div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Digital Marketing</h3>
+</div>
+<div class="flex items-center gap-4 text-outline mb-3">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="history">history</span>
+<span class="font-body-sm">Held: 30</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary-container" data-icon="check_circle">check_circle</span>
+<span class="font-body-sm text-on-surface">Attended: 18</span>
+</div>
+</div>
+<div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container" style="width: 60%"></div>
+</div>
+</div>
+<div class="ml-stack-md flex flex-col items-center gap-2">
+<div class="relative w-14 h-14 flex items-center justify-center">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<path class="text-white/5 stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+<path class="text-tertiary-container stroke-current progress-ring-circle" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="60, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<span class="absolute font-label-caps text-on-surface text-[10px]">60%</span>
+</div>
+</div>
+</div>
+<!-- Subject Card 4: Embedded Systems -->
+<div class="glass-card rounded-xl p-stack-md flex items-center justify-between group active:scale-[0.98] transition-transform">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-2 h-2 rounded-full bg-primary-container"></div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Embedded Systems</h3>
+</div>
+<div class="flex items-center gap-4 text-outline mb-3">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="history">history</span>
+<span class="font-body-sm">Held: 18</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary-container" data-icon="check_circle">check_circle</span>
+<span class="font-body-sm text-on-surface">Attended: 17</span>
+</div>
+</div>
+<div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary-container" style="width: 94%"></div>
+</div>
+</div>
+<div class="ml-stack-md flex flex-col items-center gap-2">
+<div class="relative w-14 h-14 flex items-center justify-center">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<path class="text-white/5 stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+<path class="text-primary-container stroke-current progress-ring-circle" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="94, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<span class="absolute font-label-caps text-on-surface text-[10px]">94%</span>
+</div>
+</div>
+</div>
+<!-- Subject Card 5: Data Structures -->
+<div class="glass-card rounded-xl p-stack-md flex items-center justify-between group active:scale-[0.98] transition-transform">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-2 h-2 rounded-full bg-on-primary-fixed-variant"></div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Data Structures</h3>
+</div>
+<div class="flex items-center gap-4 text-outline mb-3">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="history">history</span>
+<span class="font-body-sm">Held: 42</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="check_circle">check_circle</span>
+<span class="font-body-sm text-on-surface">Attended: 40</span>
+</div>
+</div>
+<div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 95%"></div>
+</div>
+</div>
+<div class="ml-stack-md flex flex-col items-center gap-2">
+<div class="relative w-14 h-14 flex items-center justify-center">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<path class="text-white/5 stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"></path>
+<path class="text-primary stroke-current progress-ring-circle" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-dasharray="95, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<span class="absolute font-label-caps text-on-surface text-[10px]">95%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Extra Space for FAB and Nav -->
+<div class="h-20"></div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface/80 backdrop-blur-xl border-t border-white/10 rounded-t-xl flex justify-around items-center px-gutter py-stack-sm pb-8"><!-- Dashboard Tab -->
+<a class="flex flex-col items-center justify-center text-outline hover:text-on-surface-variant transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+<!-- Holidays Tab -->
+<a class="flex flex-col items-center justify-center text-outline hover:text-on-surface-variant transition-colors active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="event">event</span>
+<span class="font-label-caps text-label-caps">Holidays</span>
+</a>
+<!-- Classes Tab (ACTIVE) -->
+<a class="flex flex-col items-center justify-center text-primary bg-primary/10 rounded-xl px-4 py-1 hover:opacity-80 transition-opacity active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="school" style="font-variation-settings: 'FILL' 1;">school</span>
+<span class="font-label-caps text-label-caps">Classes</span>
+</a></nav>
+<script>
+    // Handle Logout Popup Toggle
+    const profileTrigger = document.getElementById('profile-trigger');
+    const logoutPopup = document.getElementById('logout-popup');
+    
+    profileTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      logoutPopup.classList.toggle('hidden');
+    });
+
+    // Close popup on outside click
+    document.addEventListener('click', (e) => {
+      if (!logoutPopup.contains(e.target) && e.target !== profileTrigger) {
+        logoutPopup.classList.add('hidden');
+      }
+    });
+
+    // Subtle interactivity for marking attendance
+    document.querySelectorAll('button[class*="rounded-full"]').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        if(this.closest('nav') || this.id === 'profile-trigger') return; 
+        
+        if ("vibrate" in navigator) {
+          navigator.vibrate(50);
+        }
+        
+        const originalIcon = this.innerHTML;
+        this.innerHTML = '<span class="material-symbols-outlined" data-icon="done">done</span>';
+        this.classList.replace('bg-primary', 'bg-green-500');
+        this.classList.replace('bg-secondary', 'bg-green-500');
+        this.classList.replace('bg-tertiary-container', 'bg-green-500');
+        this.classList.replace('bg-primary-container', 'bg-green-500');
+
+        setTimeout(() => {
+          this.innerHTML = originalIcon;
+          this.classList.remove('bg-green-500');
+        }, 1500);
+      });
+    });
+  </script>
+</body></html>

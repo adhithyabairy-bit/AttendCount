@@ -38,7 +38,7 @@
         <receiver
             android:name=".AttendanceWidgetProvider"
             android:label="AttendCount Widget"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="app.attendcount.twa.ACTION_MARK_ATTENDANCE" />
@@ -50,6 +50,6 @@
     </application>
 
     <!-- Permissions -->
-
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

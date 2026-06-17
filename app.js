@@ -116,7 +116,7 @@ const AppRouter = (() => {
     const hasSubj = await ApiModule.hasSubjects();
     window.bootLog?.(`Subject query finished. hasSubjects = ${hasSubj}`);
     const hash = window.location.hash.replace('#', '');
-    const validPages = ['dashboard', 'holidays', 'classes'];
+    const validPages = ['dashboard', 'holidays', 'classes', 'quick'];
 
     // Determine destination after onboarding (or immediately)
     let dest;
@@ -155,7 +155,7 @@ const AppRouter = (() => {
     if (_currentPage === page) return;
     _currentPage = page;
 
-    const mainPages = ['dashboard', 'holidays', 'classes'];
+    const mainPages   = ['dashboard', 'holidays', 'classes'];
     const showMainShell = mainPages.includes(page);
 
     // Update hash — don't pollute history for internal pages
@@ -194,6 +194,9 @@ const AppRouter = (() => {
         manualDiv.classList.toggle('hidden', hasPrompt);
       }
       UIModule.showLoader(false);
+    } else if (page === 'quick') {
+      QuickModule.load();
+      UIModule.showLoader(false);
     } else {
       UIModule.showLoader(false);
     }
@@ -201,7 +204,7 @@ const AppRouter = (() => {
 
   function _handleHashChange() {
     const page = window.location.hash.replace('#', '');
-    if (['dashboard', 'holidays', 'classes'].includes(page)) {
+    if (['dashboard', 'holidays', 'classes', 'quick'].includes(page)) {
       navigate(page);
     }
   }

@@ -645,6 +645,63 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
+     PAGE: QUICK MARK (Home-Screen Shortcut / PWA Widget Mode)
+══════════════════════════════════════════════════════════ -->
+<div id="page-quick" class="app-page hidden">
+  <!-- Atmospheric blobs -->
+  <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+    <div class="absolute -top-32 -left-20 w-72 h-72 rounded-full blur-[120px]" style="background:rgba(173,198,255,0.06)"></div>
+    <div class="absolute bottom-20 -right-20 w-64 h-64 rounded-full blur-[100px]" style="background:rgba(250,189,0,0.05)"></div>
+  </div>
+
+  <div class="relative z-10 min-h-screen flex flex-col">
+
+    <!-- ── Header ── -->
+    <header class="flex items-center justify-between px-5 pt-safe-top pb-4 pt-6">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+          <span class="material-symbols-outlined text-primary text-[20px]">account_balance</span>
+        </div>
+        <div>
+          <h1 class="font-headline-md text-[15px] font-bold text-on-surface leading-none">AttendCount</h1>
+          <p id="quick-day-label" class="font-label-caps text-[9px] text-on-surface-variant mt-0.5 tracking-widest">Loading...</p>
+        </div>
+      </div>
+      <div id="quick-sync-badge" class="qw-badge qw-badge-online">
+        <span class="qw-dot"></span>SYNCED
+      </div>
+    </header>
+
+    <!-- ── Date Subheader ── -->
+    <div class="px-5 pb-5">
+      <p id="quick-date-label" class="font-headline-lg text-2xl font-bold text-on-surface">Loading...</p>
+      <p class="font-body-sm text-on-surface-variant mt-1">Tap to mark today's attendance</p>
+    </div>
+
+    <!-- ── Classes List ── -->
+    <div id="quick-classes-list" class="flex-1 px-5 pb-4 space-y-4 overflow-y-auto"></div>
+
+    <!-- ── Empty State ── -->
+    <div id="quick-empty-state" class="hidden flex-1 flex flex-col items-center justify-center px-8 py-16 text-center">
+      <div class="w-20 h-20 rounded-full bg-surface-container-high flex items-center justify-center mb-5">
+        <span class="material-symbols-outlined text-primary/40 text-[40px]">calendar_today</span>
+      </div>
+      <h3 class="font-headline-md text-on-surface font-bold">No Classes Today!</h3>
+      <p class="font-body-sm text-on-surface-variant mt-2">Enjoy your free day 🎉</p>
+    </div>
+
+    <!-- ── Footer ── -->
+    <div class="px-5 pb-8 pt-2">
+      <button onclick="AppRouter.navigate('dashboard')"
+        class="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-white/10 bg-surface-container font-label-caps text-[11px] text-on-surface-variant hover:bg-white/5 active:scale-95 transition-all">
+        <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+        Back to Dashboard
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
      SCRIPTS (load order matters)
 ══════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -658,6 +715,7 @@
 <script src="/js/classes.js"></script>
 <script src="/js/push.js"></script>
 <script src="/js/onboarding.js"></script>
+<script src="/js/quick.js"></script>
 <script src="/app.js"></script>
 
 </body>

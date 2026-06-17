@@ -26,10 +26,10 @@
   ],
   "shortcuts": [
     {
-      "name": "Mark Attendance",
+      "name": "Quick Mark Attendance",
       "short_name": "Mark",
-      "description": "Quickly mark today's attendance",
-      "url": "/#dashboard",
+      "description": "Mark today's attendance — works offline",
+      "url": "/#quick",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
@@ -37,6 +37,13 @@
       "short_name": "Classes",
       "description": "View your attendance by subject",
       "url": "/#classes",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your full attendance dashboard",
+      "url": "/#dashboard",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ],

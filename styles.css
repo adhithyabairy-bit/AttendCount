@@ -304,3 +304,308 @@ header.fixed {
   padding-top: max(1rem, env(safe-area-inset-top));
 }
 
+/* ============================================================
+   QUICK MARK PAGE (qw-* namespace)
+   Full-screen mobile attendance marking — PWA shortcut mode
+   ============================================================ */
+
+/* ── Cards ─────────────────────────────────────────────────── */
+.qw-card {
+  display: flex;
+  align-items: stretch;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  animation: fadeSlideUp 0.3s ease both;
+}
+
+.qw-card:active {
+  transform: scale(0.985);
+}
+
+.qw-card-active {
+  border-color: rgba(173,198,255,0.2);
+  background: rgba(173,198,255,0.04);
+  box-shadow: 0 0 0 1px rgba(173,198,255,0.1), 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.qw-card-present {
+  border-color: rgba(74,222,128,0.15);
+  background: rgba(74,222,128,0.03);
+}
+
+.qw-card-absent {
+  border-color: rgba(248,113,113,0.15);
+  background: rgba(248,113,113,0.03);
+}
+
+/* Color bar on the left */
+.qw-color-bar {
+  width: 4px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* Card body */
+.qw-card-inner {
+  flex: 1;
+  padding: 16px 16px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Top row: LIVE badge + time + type */
+.qw-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.qw-live {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #4ade80;
+  background: rgba(74,222,128,0.12);
+  border: 1px solid rgba(74,222,128,0.25);
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+
+.qw-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.qw-time {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(193,198,215,0.85);
+  letter-spacing: 0.02em;
+}
+
+.qw-type {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgba(193,198,215,0.5);
+  background: rgba(255,255,255,0.05);
+  padding: 2px 7px;
+  border-radius: 6px;
+  margin-left: auto;
+}
+
+/* Subject name */
+.qw-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #e5e2e1;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Action rows ───────────────────────────────────────────── */
+.qw-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.qw-action-btns {
+  gap: 10px;
+}
+
+/* PRESENT / ABSENT mark buttons — min 56px height for easy tap */
+.qw-present-btn,
+.qw-absent-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 56px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.qw-present-btn:active,
+.qw-absent-btn:active {
+  transform: scale(0.93);
+  opacity: 0.88;
+}
+
+.qw-present-btn {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.25);
+}
+
+.qw-absent-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(239,68,68,0.25);
+}
+
+.qw-present-btn .material-symbols-outlined,
+.qw-absent-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* Marked status chips */
+.qw-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  flex: 1;
+  justify-content: center;
+}
+
+.qw-chip-present {
+  background: rgba(74,222,128,0.12);
+  border: 1px solid rgba(74,222,128,0.25);
+  color: #4ade80;
+}
+
+.qw-chip-absent {
+  background: rgba(248,113,113,0.12);
+  border: 1px solid rgba(248,113,113,0.25);
+  color: #f87171;
+}
+
+.qw-chip-loading {
+  background: rgba(173,198,255,0.07);
+  border: 1px solid rgba(173,198,255,0.12);
+  color: rgba(173,198,255,0.7);
+}
+
+/* Change / undo button */
+.qw-change-btn {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(193,198,215,0.5);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 4px;
+  white-space: nowrap;
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.qw-change-btn:active { color: rgba(193,198,215,0.9); }
+
+/* ── Connectivity badge ────────────────────────────────────── */
+.qw-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.qw-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.qw-badge-online  { color:#4ade80; background:rgba(74,222,128,0.1); border-color:rgba(74,222,128,0.2); }
+.qw-badge-online .qw-dot  { background:#4ade80; }
+
+.qw-badge-offline {
+  color:#fbbf24;
+  background:rgba(251,191,36,0.1);
+  border-color:rgba(251,191,36,0.2);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.qw-badge-offline .qw-dot { background:#fbbf24; }
+
+.qw-badge-sync { color:#adc6ff; background:rgba(173,198,255,0.1); border-color:rgba(173,198,255,0.2); }
+
+/* ── Animations ────────────────────────────────────────────── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.qw-spin {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+/* Stagger animation for each card */
+.qw-card:nth-child(1) { animation-delay: 0ms;  }
+.qw-card:nth-child(2) { animation-delay: 60ms; }
+.qw-card:nth-child(3) { animation-delay: 120ms;}
+.qw-card:nth-child(4) { animation-delay: 180ms;}
+.qw-card:nth-child(5) { animation-delay: 240ms;}
+.qw-card:nth-child(6) { animation-delay: 300ms;}
+
+/* ── In-app Dashboard Widget — Mobile Optimizations ──────── */
+@media (max-width: 480px) {
+  /* Ensure widget buttons are full-width and 56px+ tall on mobile */
+  #dashboard-widget .grid-cols-2 {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  #dashboard-widget button[onclick*="widgetMark('present')"],
+  #dashboard-widget button[onclick*="widgetMark('absent')"] {
+    min-height: 56px;
+    font-size: 12px;
+    border-radius: 14px;
+  }
+
+  /* Truncate long subject names on tiny screens */
+  #dashboard-widget h4 {
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100vw - 100px);
+  }
+
+  /* Larger cycle nav touch targets */
+  #dashboard-widget button[onclick*="widgetPrev"],
+  #dashboard-widget button[onclick*="widgetNext"] {
+    padding: 8px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+}

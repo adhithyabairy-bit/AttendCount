@@ -19,12 +19,87 @@ const ApiModule = (() => {
     _cachedDashboard = null;
     _cachedSemesterEndDate = undefined;
     _cachedSlotTimings = null;
+  }
+
+  // ─── Offline Queue ──────────────────────────────────────
+  const OFFLINE_QUEUE_KEY = 'attendcount_offline_queue';
+
+  function getOfflineQueue() {
     try {
-      const email = _email();
-      if (email) {
-        localStorage.removeItem(`attendcount_cache_${email}`);
-      }
+      const q = localStorage.getItem(OFFLINE_QUEUE_KEY);
+      return q ? JSON.parse(q) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function setOfflineQueue(queue) {
+    try {
+      localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
     } catch (_) {}
+  }
+
+  function _queueOfflineAction(action) {
+    const queue = getOfflineQueue();
+    // Prevent duplicate entries for the same subject and date in the queue
+    const filtered = queue.filter(item => !(item.subjectId === action.subjectId && item.date === action.date));
+    filtered.push(action);
+    setOfflineQueue(filtered);
+  }
+
+  async function syncOfflineQueue() {
+    const queue = getOfflineQueue();
+    if (!queue.length) return;
+    if (!navigator.onLine) return;
+
+    console.log(`[Offline Sync] Starting sync of ${queue.length} items...`);
+    const remaining = [];
+    let succeededCount = 0;
+
+    for (const item of queue) {
+      try {
+        let error;
+        if (item.status === null) {
+          const res = await _db()
+            .from('daily_logs')
+            .delete()
+            .eq('user_email', _email())
+            .eq('subject_id', item.subjectId)
+            .eq('date', item.date);
+          error = res.error;
+        } else {
+          const res = await _db()
+            .from('daily_logs')
+            .upsert({
+              user_email: _email(),
+              subject_id: item.subjectId,
+              date: item.date,
+              status: item.status,
+              source: 'manual',
+            }, { onConflict: 'user_email,subject_id,date' });
+          error = res.error;
+        }
+        if (error) throw error;
+        succeededCount++;
+      } catch (err) {
+        console.warn(`[Offline Sync] Failed for ${item.subjectId}:`, err);
+        remaining.push(item);
+      }
+    }
+
+    setOfflineQueue(remaining);
+
+    if (succeededCount > 0) {
+      UIModule.toast(`Synced ${succeededCount} offline attendance logs!`, 'success');
+      _cachedDashboard = null;
+      if (window.DashboardModule && window.AppRouter && window.location.hash === '#dashboard') {
+        window.DashboardModule.load();
+      }
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', syncOfflineQueue);
   }
 
   function getLocalCache() {
@@ -121,17 +196,133 @@ const ApiModule = (() => {
   // ─── Attendance Marking ─────────────────────────────────
 
   async function markAttendance(subjectId, date, status) {
-    clearCache();
-    const { error } = await _db()
-      .from('daily_logs')
-      .upsert({
-        user_email: _email(),
-        subject_id: subjectId,
-        date,
-        status,
-        source: 'manual',
-      }, { onConflict: 'user_email,subject_id,date' });
-    if (error) throw error;
+    // 1. Update local cache and local storage cache immediately
+    const cache = getLocalCache() || {};
+    if (cache.todayLogs && date === UIModule.todayStr()) {
+      cache.todayLogs[subjectId] = status;
+    }
+    if (cache.subjects) {
+      const subj = cache.subjects.find(s => s.subject_id === subjectId || s.id === subjectId);
+      if (subj) {
+        const oldStatus = (cache.todayLogs && cache.todayLogs[subjectId]) || undefined;
+        
+        // Adjust subject stats in cache
+        const weight = parseInt(subj.weight || 1);
+        let rtHeld = parseInt(subj.realtime_held || 0);
+        let rtAttended = parseInt(subj.realtime_attended || 0);
+
+        if (oldStatus === 'present') {
+          rtHeld -= weight;
+          rtAttended -= weight;
+        } else if (oldStatus === 'absent') {
+          rtHeld -= weight;
+        }
+
+        if (status === 'present') {
+          rtHeld += weight;
+          rtAttended += weight;
+        } else if (status === 'absent') {
+          rtHeld += weight;
+        }
+
+        subj.realtime_held = Math.max(0, rtHeld);
+        subj.realtime_attended = Math.max(0, rtAttended);
+        const stats = calculateStats(subj);
+        subj.percentage = stats.percentage;
+        subj.safe_to_miss = stats.safeToMiss;
+      }
+    }
+    setLocalCache(cache);
+
+    // Clear memory cache so that the next online dashboard load gets fresh data
+    _cachedDashboard = null;
+
+    // 2. Perform or queue the write
+    const isOnline = navigator.onLine;
+    if (!isOnline) {
+      _queueOfflineAction({ subjectId, date, status });
+      return { success: true, offline: true };
+    }
+
+    try {
+      const { error } = await _db()
+        .from('daily_logs')
+        .upsert({
+          user_email: _email(),
+          subject_id: subjectId,
+          date,
+          status,
+          source: 'manual',
+        }, { onConflict: 'user_email,subject_id,date' });
+      if (error) throw error;
+      return { success: true, offline: false };
+    } catch (err) {
+      if (err.message && (err.message.includes('Fetch') || err.message.includes('Network') || err.message.includes('Failed to fetch') || err.status === 0 || err.status === 503)) {
+        _queueOfflineAction({ subjectId, date, status });
+        return { success: true, offline: true };
+      }
+      throw err;
+    }
+  }
+
+  async function clearAttendance(subjectId, date) {
+    // 1. Update local cache and local storage cache immediately
+    const cache = getLocalCache() || {};
+    if (cache.todayLogs && date === UIModule.todayStr()) {
+      delete cache.todayLogs[subjectId];
+    }
+    if (cache.subjects) {
+      const subj = cache.subjects.find(s => s.subject_id === subjectId || s.id === subjectId);
+      if (subj) {
+        const oldStatus = (cache.todayLogs && cache.todayLogs[subjectId]) || undefined;
+        
+        // Adjust subject stats in cache
+        const weight = parseInt(subj.weight || 1);
+        let rtHeld = parseInt(subj.realtime_held || 0);
+        let rtAttended = parseInt(subj.realtime_attended || 0);
+
+        if (oldStatus === 'present') {
+          rtHeld -= weight;
+          rtAttended -= weight;
+        } else if (oldStatus === 'absent') {
+          rtHeld -= weight;
+        }
+
+        subj.realtime_held = Math.max(0, rtHeld);
+        subj.realtime_attended = Math.max(0, rtAttended);
+        const stats = calculateStats(subj);
+        subj.percentage = stats.percentage;
+        subj.safe_to_miss = stats.safeToMiss;
+      }
+    }
+    setLocalCache(cache);
+
+    // Clear memory cache so that the next online dashboard load gets fresh data
+    _cachedDashboard = null;
+
+    // 2. Perform or queue the write
+    const isOnline = navigator.onLine;
+    if (!isOnline) {
+      _queueOfflineAction({ subjectId, date, status: null });
+      return { success: true, offline: true };
+    }
+
+    try {
+      const { error } = await _db()
+        .from('daily_logs')
+        .delete()
+        .eq('user_email', _email())
+        .eq('subject_id', subjectId)
+        .eq('date', date);
+      if (error) throw error;
+      return { success: true, offline: false };
+    } catch (err) {
+      if (err.message && (err.message.includes('Fetch') || err.message.includes('Network') || err.message.includes('Failed to fetch') || err.status === 0 || err.status === 503)) {
+        _queueOfflineAction({ subjectId, date, status: null });
+        return { success: true, offline: true };
+      }
+      throw err;
+    }
   }
 
   async function getLogsForDate(date) {
@@ -406,5 +597,8 @@ const ApiModule = (() => {
     clearCache,
     getLocalCache,
     setLocalCache,
+    getOfflineQueue,
+    syncOfflineQueue,
+    clearAttendance,
   };
 })();

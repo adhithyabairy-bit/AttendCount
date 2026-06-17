@@ -10,6 +10,7 @@ const DashboardModule = (() => {
   let _semesterEndDate = null;
   let _futureHolidays = [];
   let _isEditingEndDate = false;
+  let _widgetSelectedIndex = undefined;
 
   async function load() {
     // 1. Try to load from cache and render immediately
@@ -21,6 +22,7 @@ const DashboardModule = (() => {
       _futureHolidays = cached.futureHolidays || [];
       _todayLogs = cached.todayLogs || {};
       _renderPrompts();
+      _renderQuickWidget();
       _renderGauges();
       _renderSafeToMiss();
       _renderDailySchedule();
@@ -60,6 +62,7 @@ const DashboardModule = (() => {
       });
 
       _renderPrompts();
+      _renderQuickWidget();
       _renderGauges();
       _renderSafeToMiss();
       _renderDailySchedule();
@@ -487,19 +490,310 @@ const DashboardModule = (() => {
     }).join('');
   }
 
+  function updateSubjectStatsLocally(subjectId, newStatus) {
+    const subj = _subjects.find(s => s.subject_id === subjectId || s.id === subjectId);
+    if (!subj) return;
+
+    const oldStatus = _todayLogs[subjectId];
+    if (oldStatus === newStatus) return;
+
+    const weight = parseInt(subj.weight || 1);
+    
+    let rtHeld = parseInt(subj.realtime_held || 0);
+    let rtAttended = parseInt(subj.realtime_attended || 0);
+
+    // Remove old status impact
+    if (oldStatus === 'present') {
+      rtHeld -= weight;
+      rtAttended -= weight;
+    } else if (oldStatus === 'absent') {
+      rtHeld -= weight;
+    }
+
+    // Add new status impact
+    if (newStatus === 'present') {
+      rtHeld += weight;
+      rtAttended += weight;
+    } else if (newStatus === 'absent') {
+      rtHeld += weight;
+    }
+
+    subj.realtime_held = Math.max(0, rtHeld);
+    subj.realtime_attended = Math.max(0, rtAttended);
+    
+    // Recalculate stats using ApiModule's helper
+    const stats = ApiModule.calculateStats(subj);
+    subj.percentage = stats.percentage;
+    subj.safe_to_miss = stats.safeToMiss;
+  }
+
   async function markToday(subjectId, status) {
-    try {
-      await ApiModule.markAttendance(subjectId, UIModule.todayStr(), status);
+    const oldStatus = _todayLogs[subjectId];
+    // 1. Update stats and UI locally first
+    updateSubjectStatsLocally(subjectId, status);
+    if (status === null || status === undefined) {
+      delete _todayLogs[subjectId];
+    } else {
       _todayLogs[subjectId] = status;
-      _renderDailySchedule();
-      _renderGauges();
-      _renderSafeToMiss();
-      UIModule.toast(`Marked as ${status}.`, status === 'present' ? 'success' : 'info');
+    }
+
+    _renderDailySchedule();
+    _renderQuickWidget();
+    _renderGauges();
+    _renderSafeToMiss();
+    _renderTrend();
+
+    try {
+      let res;
+      if (status === null || status === undefined) {
+        res = await ApiModule.clearAttendance(subjectId, UIModule.todayStr());
+      } else {
+        res = await ApiModule.markAttendance(subjectId, UIModule.todayStr(), status);
+      }
+
+      if (res && res.offline) {
+        UIModule.toast('Saved offline (will sync when online).', 'info');
+      } else {
+        if (status === null || status === undefined) {
+          UIModule.toast('Attendance cleared.', 'info');
+        } else {
+          UIModule.toast(`Marked as ${status}.`, status === 'present' ? 'success' : 'info');
+        }
+      }
       if ('vibrate' in navigator) navigator.vibrate(50);
     } catch (err) {
+      // Rollback on failure
+      updateSubjectStatsLocally(subjectId, oldStatus);
+      if (oldStatus === null || oldStatus === undefined) {
+        delete _todayLogs[subjectId];
+      } else {
+        _todayLogs[subjectId] = oldStatus;
+      }
+      _renderDailySchedule();
+      _renderQuickWidget();
+      _renderGauges();
+      _renderSafeToMiss();
+      _renderTrend();
       UIModule.toast('Failed to mark attendance.', 'error');
       ApiModule.logError(err.message, err.stack);
     }
+  }
+
+  function _getTodayClasses() {
+    const today = UIModule.todayDayName();
+    const todayClasses = [];
+    _subjects.forEach((s, idx) => {
+      const timetable = s.timetable || {};
+      const slots     = timetable[today] || [];
+      slots.forEach(slotIdx => {
+        const slotTime = _slotTimes[slotIdx];
+        todayClasses.push({
+          ...s,
+          slotIndex: slotIdx,
+          timeLabel: slotTime ? `${slotTime.start} – ${slotTime.end}` : `Slot ${slotIdx + 1}`,
+          colorIdx: idx,
+          startTimeStr: slotTime ? slotTime.start : '00:00',
+          endTimeStr: slotTime ? slotTime.end : '23:59',
+        });
+      });
+    });
+    todayClasses.sort((a, b) => a.slotIndex - b.slotIndex);
+    return todayClasses;
+  }
+
+  function _renderQuickWidget() {
+    const widgetSection = document.getElementById('dashboard-widget');
+    if (!widgetSection) return;
+
+    const todayClasses = _getTodayClasses();
+
+    // If no classes today, show an offline-friendly empty card
+    if (todayClasses.length === 0) {
+      widgetSection.innerHTML = `
+        <div class="glass-card rounded-2xl p-6 border border-white/5 text-center bg-surface-container/20">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-lg">widgets</span>
+              <span class="font-label-caps text-label-caps tracking-widest text-primary">Attendance Widget</span>
+            </div>
+            ${_getWidgetOfflineBadge()}
+          </div>
+          <span class="material-symbols-outlined text-[36px] text-primary/30 block mb-2">calendar_today</span>
+          <p class="font-body-sm text-on-surface-variant">No classes scheduled for today.</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Auto-select active or next unmarked class if _widgetSelectedIndex is not set or out of bounds
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    function toMinutes(timeStr) {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    // Determine default class to show (active or first unmarked)
+    let defaultIndex = 0;
+    let foundActive = false;
+    for (let i = 0; i < todayClasses.length; i++) {
+      const c = todayClasses[i];
+      const start = toMinutes(c.startTimeStr);
+      const end = toMinutes(c.endTimeStr);
+      // Active class
+      if (currentMinutes >= start && currentMinutes < end) {
+        defaultIndex = i;
+        foundActive = true;
+        break;
+      }
+    }
+
+    if (!foundActive) {
+      // Find first unmarked class
+      for (let i = 0; i < todayClasses.length; i++) {
+        if (!_todayLogs[todayClasses[i].subject_id]) {
+          defaultIndex = i;
+          break;
+        }
+      }
+    }
+
+    // If _widgetSelectedIndex is out of bounds or initialized to undefined, use defaultIndex
+    if (_widgetSelectedIndex === undefined || _widgetSelectedIndex < 0 || _widgetSelectedIndex >= todayClasses.length) {
+      _widgetSelectedIndex = defaultIndex;
+    }
+
+    const activeClass = todayClasses[_widgetSelectedIndex];
+    const logStatus = _todayLogs[activeClass.subject_id];
+    const color = activeClass.color || UIModule.getSubjectColor(activeClass.colorIdx);
+
+    // Build cycle indicator: e.g. "1 of 3"
+    const cycleHtml = todayClasses.length > 1 ? `
+      <div class="flex items-center gap-2 bg-white/5 border border-white/5 px-2.5 py-1 rounded-xl">
+        <button onclick="DashboardModule.widgetPrev()" class="p-1 hover:text-primary transition-colors disabled:opacity-30 disabled:pointer-events-none" ${_widgetSelectedIndex === 0 ? 'disabled' : ''}>
+          <span class="material-symbols-outlined text-base leading-none">chevron_left</span>
+        </button>
+        <span class="font-label-caps text-[10px] text-on-surface-variant min-w-[32px] text-center">${_widgetSelectedIndex + 1} of ${todayClasses.length}</span>
+        <button onclick="DashboardModule.widgetNext()" class="p-1 hover:text-primary transition-colors disabled:opacity-30 disabled:pointer-events-none" ${_widgetSelectedIndex === todayClasses.length - 1 ? 'disabled' : ''}>
+          <span class="material-symbols-outlined text-base leading-none">chevron_right</span>
+        </button>
+      </div>
+    ` : '';
+
+    // Action buttons or current marked status
+    let actionHtml = '';
+    if (logStatus === 'present') {
+      actionHtml = `
+        <div class="flex flex-col gap-2 w-full">
+          <div class="py-3 px-4 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-400 font-bold flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-[20px]">check_circle</span>
+            MARKED PRESENT
+          </div>
+          <button onclick="DashboardModule.widgetMark(null)" class="text-center font-label-caps text-[10px] text-on-surface-variant hover:text-on-surface py-1 transition-colors uppercase">Change Status</button>
+        </div>
+      `;
+    } else if (logStatus === 'absent') {
+      actionHtml = `
+        <div class="flex flex-col gap-2 w-full">
+          <div class="py-3 px-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 font-bold flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-[20px]">cancel</span>
+            MARKED ABSENT
+          </div>
+          <button onclick="DashboardModule.widgetMark(null)" class="text-center font-label-caps text-[10px] text-on-surface-variant hover:text-on-surface py-1 transition-colors uppercase">Change Status</button>
+        </div>
+      `;
+    } else {
+      actionHtml = `
+        <div class="grid grid-cols-2 gap-3 w-full">
+          <button onclick="DashboardModule.widgetMark('present')" class="py-3.5 px-4 bg-green-500 text-black font-bold font-label-caps text-[11px] rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-1.5 shadow-md shadow-green-500/10">
+            <span class="material-symbols-outlined text-[16px]">check</span> PRESENT
+          </button>
+          <button onclick="DashboardModule.widgetMark('absent')" class="py-3.5 px-4 bg-red-500 text-white font-bold font-label-caps text-[11px] rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-1.5 shadow-md shadow-red-500/10">
+            <span class="material-symbols-outlined text-[16px]">close</span> ABSENT
+          </button>
+        </div>
+      `;
+    }
+
+    widgetSection.innerHTML = `
+      <div class="glass-card rounded-3xl p-6 border border-primary/10 relative overflow-hidden bg-surface-container/20">
+        <!-- Glowing atmospheric background effect -->
+        <div class="absolute -right-16 -top-16 w-36 h-36 rounded-full blur-[80px]" style="background: ${color}15"></div>
+        
+        <div class="flex justify-between items-center mb-5 relative z-10">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-lg">widgets</span>
+            <span class="font-label-caps text-label-caps tracking-widest text-primary">Attendance Widget</span>
+          </div>
+          <div class="flex items-center gap-2">
+            ${cycleHtml}
+            ${_getWidgetOfflineBadge()}
+          </div>
+        </div>
+
+        <div class="flex gap-4 items-center mb-6 relative z-10">
+          <div class="w-1.5 h-12 rounded-full shrink-0" style="background:${color}"></div>
+          <div>
+            <h4 class="font-headline-md text-headline-md leading-tight text-on-surface">${activeClass.subject_name}</h4>
+            <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">${activeClass.timeLabel} · ${activeClass.subject_type === 'lab' ? 'Lab (Wt 3)' : 'Theory (Wt 1)'}</p>
+          </div>
+        </div>
+
+        <div class="relative z-10 flex flex-col items-center">
+          ${actionHtml}
+        </div>
+      </div>
+    `;
+  }
+
+  function _getWidgetOfflineBadge() {
+    const queue = ApiModule.getOfflineQueue();
+    const isOnline = navigator.onLine;
+
+    if (!isOnline) {
+      return `
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 font-label-caps text-[9px] font-bold animate-pulse">
+          <span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
+          OFFLINE MODE
+        </div>
+      `;
+    } else if (queue.length > 0) {
+      return `
+        <button onclick="ApiModule.syncOfflineQueue()" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary font-label-caps text-[9px] font-bold animate-pulse">
+          <span class="material-symbols-outlined text-[10px] animate-spin">sync</span>
+          ${queue.length} PENDING SYNC
+        </button>
+      `;
+    } else {
+      return `
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 font-label-caps text-[9px] font-bold">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+          CONNECTED
+        </div>
+      `;
+    }
+  }
+
+  function widgetNext() {
+    const todayClasses = _getTodayClasses();
+    if (_widgetSelectedIndex < todayClasses.length - 1) {
+      _widgetSelectedIndex++;
+      _renderQuickWidget();
+    }
+  }
+
+  function widgetPrev() {
+    if (_widgetSelectedIndex > 0) {
+      _widgetSelectedIndex--;
+      _renderQuickWidget();
+    }
+  }
+
+  async function widgetMark(status) {
+    const todayClasses = _getTodayClasses();
+    const activeClass = todayClasses[_widgetSelectedIndex];
+    if (!activeClass) return;
+    await markToday(activeClass.subject_id, status);
   }
 
   // ─── Attendance Trend ─────────────────────────────────────
@@ -657,5 +951,5 @@ const DashboardModule = (() => {
     }
   }
 
-  return { load, markToday, initWhatIf, openSyncModal, enableSemesterEdit, cancelSemesterEdit, saveSemesterEndDateInline, enableNotificationsPrompt, showWidgetInstallGuide, closeWidgetGuide, triggerNativeInstall };
+  return { load, markToday, initWhatIf, openSyncModal, enableSemesterEdit, cancelSemesterEdit, saveSemesterEndDateInline, enableNotificationsPrompt, showWidgetInstallGuide, closeWidgetGuide, triggerNativeInstall, widgetNext, widgetPrev, widgetMark };
 })();

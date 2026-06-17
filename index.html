@@ -23,18 +23,6 @@
 
     window.bootLog = function(msg) {
       console.log("[BootLog]", msg);
-      const logsContainer = document.getElementById('boot-logs');
-      if (logsContainer) {
-        logsContainer.classList.remove('hidden');
-        const p = document.createElement('div');
-        p.textContent = `> ${msg}`;
-        logsContainer.appendChild(p);
-        logsContainer.scrollTop = logsContainer.scrollHeight;
-      }
-      const statusText = document.getElementById('loader-status');
-      if (statusText) {
-        statusText.textContent = msg;
-      }
     };
 
     window.addEventListener('error', function(e) {
@@ -198,8 +186,7 @@
   </div>
   <div class="text-center">
     <h1 class="font-headline-lg text-primary font-bold">AttendCount</h1>
-    <p class="font-body-sm text-on-surface-variant mt-1" id="loader-status">Loading your data...</p>
-    <div id="boot-logs" class="text-left font-mono text-[10px] text-outline/50 mt-4 max-w-xs mx-auto space-y-1 bg-black/20 p-3 rounded-xl border border-white/5 hidden max-h-40 overflow-y-auto"></div>
+    <p class="font-body-sm text-on-surface-variant mt-1" id="loader-status">Loading...</p>
   </div>
 </div>
 
@@ -227,16 +214,13 @@
     <div class="space-y-3 text-left">
       <div class="flex items-center gap-3 px-4 py-3 glass-card rounded-xl">
         <span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
-        <span class="font-body-sm text-on-surface">Real-time vs Portal tracking</span>
+        <span class="font-body-sm text-on-surface">Real-time attendance tracking</span>
       </div>
       <div class="flex items-center gap-3 px-4 py-3 glass-card rounded-xl">
         <span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
         <span class="font-body-sm text-on-surface">Lab weightage (3x) auto-handled</span>
       </div>
-      <div class="flex items-center gap-3 px-4 py-3 glass-card rounded-xl">
-        <span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
-        <span class="font-body-sm text-on-surface">Google Calendar holiday sync</span>
-      </div>
+
       <div class="flex items-center gap-3 px-4 py-3 glass-card rounded-xl">
         <span class="material-symbols-outlined text-primary text-[18px]">check_circle</span>
         <span class="font-body-sm text-on-surface">Safe-to-miss calculator</span>
@@ -258,6 +242,86 @@
         By signing in, you agree to our <a href="/privacy_policy.html" class="text-primary hover:underline">Privacy Policy</a>.
       </p>
     </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE: ONBOARDING (Post-login, shown once)
+══════════════════════════════════════════════════════════ -->
+<div id="page-onboarding" class="app-page hidden min-h-screen flex flex-col items-center justify-center px-safe-margin relative overflow-hidden">
+  <!-- Background atmosphere -->
+  <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 bg-primary/5 rounded-full blur-[120px]"></div>
+    <div class="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-secondary/5 to-transparent"></div>
+  </div>
+
+  <div class="relative z-10 w-full max-w-sm space-y-8">
+    <!-- Header -->
+    <div class="text-center space-y-2">
+      <div class="w-16 h-16 rounded-2xl glass-card flex items-center justify-center neon-glow-primary mx-auto mb-4">
+        <span class="material-symbols-outlined text-primary text-[32px]">account_balance</span>
+      </div>
+      <h1 class="font-headline-lg text-2xl font-bold text-on-surface">You're all set!</h1>
+      <p class="font-body-sm text-on-surface-variant">Just two quick things to make AttendCount work best for you.</p>
+    </div>
+
+    <!-- Step 1: Notifications -->
+    <div id="onboarding-notif-card" class="glass-card rounded-2xl p-5 space-y-4 border border-primary/20 bg-primary/5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center text-primary shrink-0">
+          <span class="material-symbols-outlined text-[22px]">notifications_active</span>
+        </div>
+        <div>
+          <h3 class="font-headline-md text-[15px] text-on-surface">Class Attendance Alerts</h3>
+          <p class="font-body-sm text-[12px] text-on-surface-variant mt-0.5">Get a notification at the start of every class to quickly mark Present or Absent — right from the notification itself.</p>
+        </div>
+      </div>
+      <button id="onboarding-notif-btn" onclick="OnboardingModule.enableNotifications(this)"
+        class="w-full py-3 bg-primary text-on-primary font-label-caps text-[11px] font-bold rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-[16px]">notifications</span>
+        ALLOW NOTIFICATIONS
+      </button>
+      <button onclick="OnboardingModule.skipNotif()" class="w-full text-center text-[11px] text-on-surface-variant hover:text-on-surface transition-colors py-1">Skip for now</button>
+    </div>
+
+    <!-- Step 2: Install Widget -->
+    <div id="onboarding-widget-card" class="glass-card rounded-2xl p-5 space-y-4 border border-secondary/20 bg-secondary/5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-secondary/15 flex items-center justify-center text-secondary shrink-0">
+          <span class="material-symbols-outlined text-[22px]">home_app_shortcut</span>
+        </div>
+        <div>
+          <h3 class="font-headline-md text-[15px] text-on-surface">Add to Home Screen</h3>
+          <p class="font-body-sm text-[12px] text-on-surface-variant mt-0.5">Install AttendCount as an app shortcut so you can mark attendance with a single tap — no browser needed.</p>
+        </div>
+      </div>
+      <!-- Install options shown dynamically -->
+      <div id="onboarding-install-options" class="space-y-2">
+        <!-- Native prompt button (hidden until beforeinstallprompt fires) -->
+        <button id="onboarding-native-install" onclick="OnboardingModule.triggerInstall()"
+          class="hidden w-full py-3 bg-secondary text-on-secondary font-label-caps text-[11px] font-bold rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-[16px]">install_mobile</span>
+          INSTALL APP
+        </button>
+        <!-- Manual instructions for iOS/unsupported -->
+        <div id="onboarding-manual-install" class="space-y-2">
+          <p class="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-wider">How to install:</p>
+          <div class="flex gap-2 items-start bg-white/5 p-3 rounded-xl">
+            <span class="font-bold text-secondary text-[10px] bg-secondary/10 px-1.5 py-0.5 rounded shrink-0">iOS</span>
+            <p class="font-body-sm text-[11px] text-on-surface-variant">Tap <span class="material-symbols-outlined text-[12px] inline align-middle">share</span> Share → <strong class="text-on-surface">Add to Home Screen</strong></p>
+          </div>
+          <div class="flex gap-2 items-start bg-white/5 p-3 rounded-xl">
+            <span class="font-bold text-secondary text-[10px] bg-secondary/10 px-1.5 py-0.5 rounded shrink-0">Android</span>
+            <p class="font-body-sm text-[11px] text-on-surface-variant">Tap <span class="material-symbols-outlined text-[12px] inline align-middle">more_vert</span> → <strong class="text-on-surface">Add to Home Screen</strong></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Continue Button -->
+    <button onclick="OnboardingModule.finish()" class="w-full py-4 bg-surface-container-high border border-white/10 text-on-surface font-label-caps text-[11px] font-bold rounded-2xl active:scale-95 transition-all hover:bg-white/5">
+      CONTINUE TO APP →
+    </button>
   </div>
 </div>
 
@@ -331,11 +395,14 @@
 <div id="page-dashboard" class="app-page hidden">
   <main class="pt-24 pb-32 px-safe-margin space-y-stack-lg max-w-2xl mx-auto">
 
+    <!-- Mobile Notification & Widget Prompts -->
+    <div id="dashboard-prompts" class="space-y-4"></div>
+
     <!-- Attendance Gauges -->
     <section>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-gutter" id="dash-gauges">
+      <div class="grid grid-cols-1 gap-gutter" id="dash-gauges">
         <!-- Populated by DashboardModule._renderGauges() -->
-        <div class="glass-card rounded-2xl p-6 h-64 animate-pulse col-span-2"></div>
+        <div class="glass-card rounded-2xl p-6 h-64 animate-pulse"></div>
       </div>
     </section>
 
@@ -352,6 +419,8 @@
           <div class="space-y-2">
             <label class="font-label-caps text-label-caps text-on-surface-variant uppercase">Missing Classes</label>
             <input id="whatif-miss-count" type="number" min="0" placeholder="0"
+              onkeydown="if(event.key==='-' || event.key==='+')event.preventDefault();"
+              oninput="if(this.value<0)this.value=0"
               class="w-full bg-transparent border-b-2 border-outline-variant focus:border-primary outline-none py-2 font-headline-md text-headline-md transition-colors text-on-surface">
           </div>
           <div class="space-y-2">
@@ -444,25 +513,7 @@
         <div id="cal-grid" class="calendar-grid"></div>
       </div>
 
-      <!-- Google Calendar Sync -->
-      <div class="glass-card rounded-2xl p-4 flex items-center justify-between border border-primary/10" style="background:rgba(173,198,255,0.03)">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary text-[18px]">calendar_month</span>
-            <span class="font-headline-md text-[15px] text-on-surface">Sync Google Calendar</span>
-          </div>
-          <span id="gcal-sync-status" class="font-body-sm text-body-sm text-on-surface-variant block mt-0.5">Auto-import holidays from your calendar</span>
-        </div>
-        <div class="flex flex-col items-end gap-2">
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="gcal-sync-toggle" class="sr-only peer" onchange="HolidaysModule.handleSyncToggle(this.checked)"/>
-            <div class="w-11 h-6 bg-surface-container-highest rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-inner"></div>
-          </label>
-          <button id="gcal-sync-btn" onclick="HolidaysModule.triggerCalendarSync()" class="flex items-center gap-1.5 font-label-caps text-[10px] text-primary hover:opacity-80 transition-opacity">
-            <span class="material-symbols-outlined text-[14px]">sync</span> Sync Now
-          </button>
-        </div>
-      </div>
+
     </section>
 
     <!-- Holiday List -->
@@ -544,6 +595,52 @@
   </a>
 </nav>
 
+<!-- Widget Guide Modal -->
+<div id="widget-guide-modal" class="fixed inset-0 z-[100] hidden items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+  <div class="glass-card w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 space-y-6 animate-in slide-in-from-bottom-10 duration-300">
+    <div class="flex justify-between items-center">
+      <h3 class="font-headline-lg text-on-surface flex items-center gap-2">
+        <span class="material-symbols-outlined text-secondary">widgets</span> Add PWA Widget
+      </h3>
+      <button onclick="DashboardModule.closeWidgetGuide()" class="p-2 rounded-full hover:bg-white/10">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    
+    <div class="space-y-4 font-body-sm text-on-surface-variant">
+      <p class="text-sm">Install AttendCount to your mobile home screen to access quick widgets and tap shortcuts.</p>
+      
+      <div class="space-y-3">
+        <div class="flex gap-3 items-start bg-white/5 p-3 rounded-xl">
+          <span class="font-bold text-secondary text-xs bg-secondary/10 px-2 py-0.5 rounded-md">1</span>
+          <div>
+            <p class="font-semibold text-on-surface text-[13px]">Install the App</p>
+            <p class="text-[11px] mt-0.5">Tap your browser menu (Chrome: <span class="material-symbols-outlined text-[12px] inline">more_vert</span> or Safari: <span class="material-symbols-outlined text-[12px] inline">share</span>) and select <strong>"Add to Home Screen"</strong>.</p>
+          </div>
+        </div>
+        
+        <div class="flex gap-3 items-start bg-white/5 p-3 rounded-xl">
+          <span class="font-bold text-secondary text-xs bg-secondary/10 px-2 py-0.5 rounded-md">2</span>
+          <div>
+            <p class="font-semibold text-on-surface text-[13px]">Access Quick Actions</p>
+            <p class="text-[11px] mt-0.5">Long-press the installed AttendCount icon on your home screen to show launcher shortcut widgets.</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3 items-start bg-white/5 p-3 rounded-xl">
+          <span class="font-bold text-secondary text-xs bg-secondary/10 px-2 py-0.5 rounded-md">3</span>
+          <div>
+            <p class="font-semibold text-on-surface text-[13px]">Pin Shortcut to Launcher</p>
+            <p class="text-[11px] mt-0.5">Drag the <strong>"Mark Attendance"</strong> shortcut directly onto your home screen grid to create a one-tap widget!</p>
+          </div>
+        </div>
+      </div>
+      
+      <button id="pwa-install-prompt-btn" onclick="DashboardModule.triggerNativeInstall()" class="hidden w-full py-3 bg-secondary text-on-secondary font-label-caps text-[11px] font-bold rounded-xl active:scale-95 transition-transform">INSTALL APP DIRECTLY</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════
      SCRIPTS (load order matters)
 ══════════════════════════════════════════════════════════ -->
@@ -557,6 +654,7 @@
 <script src="/js/holidays.js"></script>
 <script src="/js/classes.js"></script>
 <script src="/js/push.js"></script>
+<script src="/js/onboarding.js"></script>
 <script src="/app.js"></script>
 
 </body>

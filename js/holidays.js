@@ -11,8 +11,6 @@ const HolidaysModule = (() => {
   async function load() {
     UIModule.showLoader(true);
     try {
-      const syncState = await ApiModule.getCalendarSyncState();
-      _updateSyncToggle(syncState?.enabled || false, syncState?.last_synced);
       await _loadMonth(_currentYear, _currentMonth);
     } catch (err) {
       UIModule.toast('Failed to load holidays: ' + err.message, 'error');
@@ -215,50 +213,8 @@ const HolidaysModule = (() => {
     });
   }
 
-  // ─── Google Calendar Sync ─────────────────────────────────
-
-  function _updateSyncToggle(enabled, lastSynced) {
-    const toggle = document.getElementById('gcal-sync-toggle');
-    const status = document.getElementById('gcal-sync-status');
-    if (toggle) toggle.checked = enabled;
-    if (status && lastSynced) {
-      const d = new Date(lastSynced);
-      status.textContent = `Last synced: ${d.toLocaleDateString()}`;
-    }
-  }
-
-  async function handleSyncToggle(enabled) {
-    await ApiModule.setCalendarSyncEnabled(enabled);
-    if (enabled) {
-      await triggerCalendarSync();
-    }
-  }
-
-  async function triggerCalendarSync() {
-    const btn    = document.getElementById('gcal-sync-btn');
-    const status = document.getElementById('gcal-sync-status');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[16px]">sync</span> Syncing...'; }
-    if (status) status.textContent = 'Syncing from Google Calendar...';
-
-    try {
-      const result = await ApiModule.syncGoogleCalendar();
-      if (result.status === 'throttled') {
-        UIModule.toast(result.message, 'info');
-      } else {
-        UIModule.toast(`Synced ${result.count} holiday date${result.count !== 1 ? 's' : ''} from Google Calendar.`, 'success');
-        await _loadMonth(_currentYear, _currentMonth);
-      }
-      if (status) status.textContent = `Last synced: ${new Date().toLocaleDateString()}`;
-    } catch (err) {
-      UIModule.toast('Calendar sync failed: ' + err.message, 'error');
-      ApiModule.logError(err.message, err.stack);
-    } finally {
-      if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">sync</span> Sync Now'; }
-    }
-  }
-
   return {
     load, handleDayClick, closeNameModal, confirmHoliday, prevMonth, nextMonth,
-    removeHolidayItem, handleSyncToggle, triggerCalendarSync,
+    removeHolidayItem,
   };
 })();

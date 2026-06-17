@@ -10,12 +10,52 @@ const ApiModule = (() => {
     return AuthModule.getUserEmail();
   }
 
+  // ─── Caching ───────────────────────────────────────────
+  let _cachedDashboard = null;
+  let _cachedSemesterEndDate = undefined;
+  let _cachedSlotTimings = null;
+
+  function clearCache() {
+    _cachedDashboard = null;
+    _cachedSemesterEndDate = undefined;
+    _cachedSlotTimings = null;
+    try {
+      const email = _email();
+      if (email) {
+        localStorage.removeItem(`attendcount_cache_${email}`);
+      }
+    } catch (_) {}
+  }
+
+  function getLocalCache() {
+    try {
+      const email = _email();
+      if (!email) return null;
+      const cached = localStorage.getItem(`attendcount_cache_${email}`);
+      return cached ? JSON.parse(cached) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function setLocalCache(data) {
+    try {
+      const email = _email();
+      if (!email) return;
+      localStorage.setItem(`attendcount_cache_${email}`, JSON.stringify(data));
+    } catch (_) {}
+  }
+
   // ─── Dashboard ─────────────────────────────────────────
 
-  async function getDashboard() {
+  async function getDashboard(forceRefresh = false) {
+    if (_cachedDashboard && !forceRefresh) {
+      return _cachedDashboard;
+    }
     const { data, error } = await _db().rpc('get_dashboard', { p_email: _email() });
     if (error) throw error;
-    return data || [];
+    _cachedDashboard = data || [];
+    return _cachedDashboard;
   }
 
   // ─── Subjects ───────────────────────────────────────────
@@ -32,6 +72,7 @@ const ApiModule = (() => {
   }
 
   async function createSubject({ name, type, timetable = {}, color = '#adc6ff' }) {
+    clearCache();
     const { data, error } = await _db()
       .from('subjects')
       .insert({ user_email: _email(), name, type, timetable, color })
@@ -42,6 +83,7 @@ const ApiModule = (() => {
   }
 
   async function updateSubjectTimetable(subjectId, timetable) {
+    clearCache();
     const { error } = await _db()
       .from('subjects')
       .update({ timetable })
@@ -50,7 +92,18 @@ const ApiModule = (() => {
     if (error) throw error;
   }
 
+  async function updateSubject(subjectId, { name, type, timetable, color }) {
+    clearCache();
+    const { error } = await _db()
+      .from('subjects')
+      .update({ name, type, timetable, color })
+      .eq('id', subjectId)
+      .eq('user_email', _email());
+    if (error) throw error;
+  }
+
   async function deleteSubject(subjectId) {
+    clearCache();
     const { error } = await _db()
       .from('subjects')
       .update({ is_active: false })
@@ -60,18 +113,15 @@ const ApiModule = (() => {
   }
 
   async function hasSubjects() {
-    const { count, error } = await _db()
-      .from('subjects')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_email', _email())
-      .eq('is_active', true);
-    if (error) return false;
-    return (count || 0) > 0;
+    const data = await getDashboard();
+    return data.length > 0;
   }
+
 
   // ─── Attendance Marking ─────────────────────────────────
 
   async function markAttendance(subjectId, date, status) {
+    clearCache();
     const { error } = await _db()
       .from('daily_logs')
       .upsert({
@@ -116,6 +166,7 @@ const ApiModule = (() => {
    * Marks a date range as holiday for ALL active subjects
    */
   async function markHoliday(dates, label = 'Holiday') {
+    clearCache();
     const subjects = await getSubjects();
     const rows = [];
     for (const date of dates) {
@@ -138,6 +189,7 @@ const ApiModule = (() => {
   }
 
   async function removeHoliday(date) {
+    clearCache();
     const { error } = await _db()
       .from('daily_logs')
       .delete()
@@ -160,170 +212,12 @@ const ApiModule = (() => {
     });
   }
 
-  // ─── Google Calendar Sync ───────────────────────────────
 
-  async function syncGoogleCalendar() {
-    const config = window.APP_CONFIG;
-    const { HOLIDAY_KEYWORDS, CALENDAR_SYNC_INTERVAL_HOURS } = config;
-
-    // Check last sync time (24h throttle)
-    const { data: syncState } = await _db()
-      .from('calendar_sync')
-      .select('last_synced, enabled')
-      .eq('user_email', _email())
-      .maybeSingle();
-
-    if (syncState?.last_synced) {
-      const lastSync = new Date(syncState.last_synced);
-      const hoursSince = (Date.now() - lastSync.getTime()) / 3600000;
-      if (hoursSince < CALENDAR_SYNC_INTERVAL_HOURS) {
-        return { status: 'throttled', message: 'Synced recently. Try again in a few hours.' };
-      }
-    }
-
-    const googleToken = await AuthModule.getGoogleAccessToken();
-    if (!googleToken) {
-      throw new Error('Google access token not available. Please sign out and sign in again.');
-    }
-
-    // Fetch events for the next 6 months
-    const now = new Date();
-    const sixMonths = new Date(now);
-    sixMonths.setMonth(sixMonths.getMonth() + 6);
-
-    const params = new URLSearchParams({
-      timeMin: now.toISOString(),
-      timeMax: sixMonths.toISOString(),
-      singleEvents: 'true',
-      orderBy: 'startTime',
-      maxResults: '250',
-    });
-
-    const calendarsToSync = ['primary', 'en.indian#holiday@group.v.calendar.google.com'];
-
-    // Try to list user's calendars to find additional holiday/regional calendars
-    try {
-      const listResponse = await fetch(
-        'https://www.googleapis.com/calendar/v3/users/me/calendarList',
-        { headers: { Authorization: `Bearer ${googleToken}` } }
-      );
-      if (listResponse.ok) {
-        const listData = await listResponse.json();
-        const items = listData.items || [];
-        items.forEach(cal => {
-          const summary = (cal.summary || '').toLowerCase();
-          const id = cal.id;
-          if (summary.includes('holiday') || summary.includes('telangana') || summary.includes('indian')) {
-            if (!calendarsToSync.includes(id)) {
-              calendarsToSync.push(id);
-            }
-          }
-        });
-      }
-    } catch (e) {
-      console.warn('Failed to fetch calendar list, using default calendars:', e);
-    }
-
-    const holidayDates = [];
-
-    for (const calId of calendarsToSync) {
-      try {
-        const response = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?${params}`,
-          { headers: { Authorization: `Bearer ${googleToken}` } }
-        );
-        if (!response.ok) continue;
-
-        const { items = [] } = await response.json();
-        for (const event of items) {
-          const title = (event.summary || '').toLowerCase();
-          
-          // If syncing a public holiday or regional calendar, import all events.
-          // For primary calendar, only import events matching holiday keywords.
-          const isHolidayCal = calId.includes('holiday') || calId.includes('indian') || calId.includes('telangana');
-          const isMatch = isHolidayCal || HOLIDAY_KEYWORDS.some(kw => title.includes(kw.toLowerCase()));
-
-          if (!isMatch) continue;
-
-          const startStr = event.start?.date || event.start?.dateTime?.split('T')[0];
-          const endStr   = event.end?.date   || event.end?.dateTime?.split('T')[0];
-          if (!startStr) continue;
-
-          // Expand date ranges using local dates
-          const start = new Date(startStr + 'T00:00:00');
-          let end     = endStr ? new Date(endStr + 'T00:00:00') : new Date(startStr + 'T00:00:00');
-
-          const isAllDay = !!event.start?.date;
-          if (isAllDay && endStr && startStr !== endStr) {
-            end.setDate(end.getDate() - 1);
-          }
-
-          const cur = new Date(start);
-          while (cur <= end) {
-            holidayDates.push({
-              date: UIModule.toLocalDateStr(cur),
-              label: event.summary || 'Holiday',
-            });
-            cur.setDate(cur.getDate() + 1);
-          }
-        }
-      } catch (err) {
-        console.warn(`Failed to sync calendar ${calId}:`, err);
-      }
-    }
-
-    // Bulk insert holidays
-    const subjects = await getSubjects();
-    const rows = [];
-    for (const { date, label } of holidayDates) {
-      for (const subject of subjects) {
-        rows.push({
-          user_email: _email(),
-          subject_id: subject.id,
-          date,
-          status: 'holiday',
-          label,
-          source: 'google_calendar',
-        });
-      }
-    }
-
-    if (rows.length) {
-      const { error } = await _db()
-        .from('daily_logs')
-        .upsert(rows, { onConflict: 'user_email,subject_id,date' });
-      if (error) throw error;
-    }
-
-    // Update sync timestamp
-    await _db().from('calendar_sync').upsert({
-      user_email: _email(),
-      enabled: true,
-      last_synced: new Date().toISOString(),
-    }, { onConflict: 'user_email' });
-
-    return { status: 'success', count: holidayDates.length };
-  }
-
-  async function getCalendarSyncState() {
-    const { data } = await _db()
-      .from('calendar_sync')
-      .select('*')
-      .eq('user_email', _email())
-      .maybeSingle();
-    return data;
-  }
-
-  async function setCalendarSyncEnabled(enabled) {
-    await _db().from('calendar_sync').upsert({
-      user_email: _email(),
-      enabled,
-    }, { onConflict: 'user_email' });
-  }
 
   // ─── Baseline / Portal Sync ─────────────────────────────
 
   async function setBaseline(subjectId, officialHeld, officialAttended) {
+    clearCache();
     const { error } = await _db()
       .from('baseline')
       .upsert({
@@ -342,6 +236,7 @@ const ApiModule = (() => {
    * Updates baseline and purges daily_logs prior to sync date
    */
   async function syncPortal(subjectId, officialHeld, officialAttended, syncDate) {
+    clearCache();
     // Update baseline
     const { error: bErr } = await _db()
       .from('baseline')
@@ -368,12 +263,13 @@ const ApiModule = (() => {
   // ─── Slot Timings ───────────────────────────────────────
 
   async function getSlotTimings() {
+    if (_cachedSlotTimings) return _cachedSlotTimings;
     const { data } = await _db()
       .from('slot_timings')
       .select('slots')
       .eq('user_email', _email())
       .maybeSingle();
-    return data?.slots || [
+    _cachedSlotTimings = data?.slots || [
       { start: '09:00', end: '10:00' },
       { start: '10:00', end: '11:00' },
       { start: '11:00', end: '12:00' },
@@ -381,9 +277,12 @@ const ApiModule = (() => {
       { start: '14:00', end: '15:00' },
       { start: '15:00', end: '16:00' },
     ];
+    return _cachedSlotTimings;
   }
 
   async function saveSlotTimings(slots) {
+    _cachedSlotTimings = slots;
+    clearCache();
     await _db().from('slot_timings').upsert({
       user_email: _email(),
       slots,
@@ -413,16 +312,22 @@ const ApiModule = (() => {
   // ─── Semester End Date ───────────────────────────────────
 
   async function getSemesterEndDate() {
+    if (_cachedSemesterEndDate !== undefined) {
+      return _cachedSemesterEndDate;
+    }
     const { data, error } = await _db()
       .from('users')
       .select('semester_end_date')
       .eq('email', _email())
       .single();
     if (error) return null;
-    return data?.semester_end_date || null;
+    _cachedSemesterEndDate = data?.semester_end_date || null;
+    return _cachedSemesterEndDate;
   }
 
   async function setSemesterEndDate(date) {
+    _cachedSemesterEndDate = date;
+    clearCache();
     const { error } = await _db()
       .from('users')
       .update({ semester_end_date: date })
@@ -477,6 +382,7 @@ const ApiModule = (() => {
     getDashboard,
     getSubjects,
     createSubject,
+    updateSubject,
     updateSubjectTimetable,
     deleteSubject,
     hasSubjects,
@@ -486,9 +392,7 @@ const ApiModule = (() => {
     markHoliday,
     removeHoliday,
     getHolidays,
-    syncGoogleCalendar,
-    getCalendarSyncState,
-    setCalendarSyncEnabled,
+
     setBaseline,
     syncPortal,
     getSlotTimings,
@@ -499,5 +403,8 @@ const ApiModule = (() => {
     getFutureHolidays,
     calculateStats,
     predictWhatIf,
+    clearCache,
+    getLocalCache,
+    setLocalCache,
   };
 })();

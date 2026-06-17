@@ -3,7 +3,7 @@
 // Strategy: Cache-first for shell, Network-first for API
 // ============================================================
 
-const CACHE_NAME = 'attendcount-v11';
+const CACHE_NAME = 'attendcount-v12';
 const OFFLINE_URL = '/';
 
 // Assets to pre-cache on install (shell + design assets)
@@ -22,6 +22,7 @@ const PRECACHE_ASSETS = [
   '/js/holidays.js',
   '/js/classes.js',
   '/js/push.js',
+  '/js/onboarding.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];
@@ -137,6 +138,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const action = event.action;
   const url = event.notification.data?.url || '/';
+  const notificationData = event.notification.data || {};
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -144,7 +146,7 @@ self.addEventListener('notificationclick', (event) => {
         const existingClient = clientList.find(c => c.url.includes(location.origin));
         if (existingClient) {
           existingClient.focus();
-          existingClient.postMessage({ type: 'NOTIFICATION_ACTION', action, url });
+          existingClient.postMessage({ type: 'NOTIFICATION_ACTION', action, url, notificationData });
         } else {
           clients.openWindow(url);
         }

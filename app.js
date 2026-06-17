@@ -5,6 +5,7 @@
 const AppRouter = (() => {
   let _currentPage = null;
   let _routingInProgress = false; // Guard against double-routing race condition
+  let _postOnboardingDest = null; // Where to go after onboarding finishes
 
   // ─── Bootstrap ────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ const AppRouter = (() => {
         }
       } else if (event === 'SIGNED_OUT') {
         window.bootLog?.("User signed out, navigating to login");
+        ApiModule.clearCache();
         _routingInProgress = false;
         navigate('login');
       }
@@ -116,20 +118,35 @@ const AppRouter = (() => {
     const hash = window.location.hash.replace('#', '');
     const validPages = ['dashboard', 'holidays', 'classes'];
 
+    // Determine destination after onboarding (or immediately)
+    let dest;
     if (!hasSubj) {
-      window.bootLog?.("No subjects configured. Routing to setup wizard.");
-      navigate('setup');
+      dest = 'setup';
     } else if (validPages.includes(hash)) {
-      window.bootLog?.(`Routing to cached hash page: #${hash}`);
-      navigate(hash);
+      dest = hash;
     } else {
-      window.bootLog?.("Routing to dashboard.");
-      navigate('dashboard');
+      dest = 'dashboard';
+    }
+
+    // Show onboarding once if needed (before going to real dest)
+    if (OnboardingModule.shouldShow()) {
+      window.bootLog?.("Showing onboarding screen.");
+      _postOnboardingDest = dest;
+      navigate('onboarding');
+    } else {
+      window.bootLog?.(`Routing to ${dest}.`);
+      navigate(dest);
     }
 
     // Start class reminder checker (every 60 seconds)
     PushModule.checkCurrentClass();
     setInterval(PushModule.checkCurrentClass, 60_000);
+  }
+
+  function _continueAfterOnboarding() {
+    const dest = _postOnboardingDest || 'dashboard';
+    _postOnboardingDest = null;
+    navigate(dest);
   }
 
   // ─── Navigation ───────────────────────────────────────────
@@ -141,11 +158,11 @@ const AppRouter = (() => {
     const mainPages = ['dashboard', 'holidays', 'classes'];
     const showMainShell = mainPages.includes(page);
 
-    // Update hash
-    if (page !== 'login') {
-      window.history.replaceState(null, '', `#${page}`);
-    } else {
+    // Update hash — don't pollute history for internal pages
+    if (page === 'login' || page === 'onboarding') {
       window.history.replaceState(null, '', '/');
+    } else {
+      window.history.replaceState(null, '', `#${page}`);
     }
 
     // Toggle header + nav
@@ -153,8 +170,8 @@ const AppRouter = (() => {
     document.getElementById('main-nav')?.classList.toggle('hidden', !showMainShell);
 
     // Show page
+    UIModule.showLoader(true);
     UIModule.showPage(page);
-    UIModule.showLoader(false);
 
     // Trigger page-specific load
     if (page === 'dashboard') {
@@ -165,6 +182,20 @@ const AppRouter = (() => {
       ClassesModule.load();
     } else if (page === 'setup') {
       SetupModule.init();
+      UIModule.showLoader(false);
+    } else if (page === 'onboarding') {
+      // Refresh native install button in case beforeinstallprompt already fired
+      const nativeBtn = document.getElementById('onboarding-native-install');
+      const manualDiv = document.getElementById('onboarding-manual-install');
+      if (nativeBtn && manualDiv) {
+        const hasPrompt = !!_installPrompt;
+        nativeBtn.classList.toggle('hidden', !hasPrompt);
+        nativeBtn.classList.toggle('flex', hasPrompt);
+        manualDiv.classList.toggle('hidden', hasPrompt);
+      }
+      UIModule.showLoader(false);
+    } else {
+      UIModule.showLoader(false);
     }
   }
 
@@ -181,6 +212,7 @@ const AppRouter = (() => {
     document.getElementById('profile-popup')?.classList.add('hidden');
     UIModule.showLoader(true);
     try {
+      ApiModule.clearCache();
       await AuthModule.signOut();
     } catch (_) {
       navigate('login');
@@ -251,10 +283,27 @@ const AppRouter = (() => {
     banner.querySelector('#install-no').onclick = () => banner.remove();
   }
 
+  async function triggerInstall() {
+    if (!_installPrompt) return false;
+    _installPrompt.prompt();
+    const { outcome } = await _installPrompt.userChoice;
+    if (outcome === 'accepted') {
+      UIModule.toast('AttendCount installed!', 'success');
+      _installPrompt = null;
+      document.getElementById('install-banner')?.remove();
+      return true;
+    }
+    return false;
+  }
+
+  function getInstallPrompt() {
+    return _installPrompt;
+  }
+
   // Start the app
   document.addEventListener('DOMContentLoaded', boot);
 
-  const routerObj = { navigate, signOut, requestPushPermission };
+  const routerObj = { navigate, signOut, requestPushPermission, triggerInstall, getInstallPrompt, _continueAfterOnboarding };
   window.AppRouter = routerObj;
   return routerObj;
 })();

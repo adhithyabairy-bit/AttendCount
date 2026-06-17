@@ -8,10 +8,22 @@ const ClassesModule = (() => {
   let _futureHolidays = [];
 
   async function load() {
-    UIModule.showLoader(true);
+    // 1. Try to load from cache and render immediately
+    const cached = ApiModule.getLocalCache();
+    if (cached) {
+      _subjects = cached.subjects || [];
+      _semesterEndDate = cached.semesterEndDate || null;
+      _futureHolidays = cached.futureHolidays || [];
+      _renderSummaryHeader();
+      _renderSubjectCards();
+      UIModule.showLoader(false); // Hide loader immediately!
+    } else {
+      UIModule.showLoader(true);
+    }
+
     try {
       const [subjects, endDate] = await Promise.all([
-        ApiModule.getDashboard(),
+        ApiModule.getDashboard(true),
         ApiModule.getSemesterEndDate()
       ]);
       _subjects = subjects;
@@ -22,6 +34,15 @@ const ClassesModule = (() => {
         const todayStr = UIModule.todayStr();
         _futureHolidays = await ApiModule.getFutureHolidays(todayStr, _semesterEndDate);
       }
+
+      // Update local cache
+      const currentCache = ApiModule.getLocalCache() || {};
+      ApiModule.setLocalCache({
+        ...currentCache,
+        subjects: _subjects,
+        semesterEndDate: _semesterEndDate,
+        futureHolidays: _futureHolidays
+      });
 
       _renderSummaryHeader();
       _renderSubjectCards();
@@ -227,21 +248,22 @@ const ClassesModule = (() => {
         </div>
         `}
 
-        <div class="glass-card rounded-xl p-4">
-          <p class="font-label-caps text-[10px] text-outline uppercase mb-2">Portal Baseline</p>
+        <div class="glass-card rounded-xl p-4" id="baseline-card-${subjectId}">
+          <p class="font-label-caps text-[10px] text-outline uppercase mb-2">Class Counts</p>
           <div class="flex justify-between font-body-sm">
-            <span class="text-on-surface-variant">Official Held</span>
-            <span class="text-on-surface">${s.official_held}</span>
+            <span class="text-on-surface-variant">Classes Held</span>
+            <span class="text-on-surface font-semibold">${stats.totalHeld}</span>
           </div>
           <div class="flex justify-between font-body-sm mt-1">
-            <span class="text-on-surface-variant">Official Attended</span>
-            <span class="text-on-surface">${s.official_attended}</span>
+            <span class="text-on-surface-variant">Classes Attended</span>
+            <span class="text-on-surface font-semibold">${stats.totalAttended}</span>
           </div>
-          ${s.last_sync_date ? `<p class="font-body-sm text-outline mt-2">Last sync: ${UIModule.formatDate(s.last_sync_date)}</p>` : ''}
         </div>
-        <button onclick="ClassesModule.openPortalSync('${subjectId}')" class="w-full py-4 rounded-xl glass-card font-label-caps text-label-caps text-primary hover:bg-primary/10 transition-colors flex items-center justify-center gap-2">
-          <span class="material-symbols-outlined text-[18px]">sync</span> SYNC PORTAL DATA
-        </button>
+        <div id="edit-classes-actions-${subjectId}">
+          <button onclick="ClassesModule.openEditClasses('${subjectId}')" class="w-full py-4 rounded-xl glass-card font-label-caps text-label-caps text-primary hover:bg-primary/10 transition-colors flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-[18px]">edit</span> EDIT CLASSES
+          </button>
+        </div>
         <button onclick="ClassesModule.deleteSubjectConfirm('${subjectId}', '${s.subject_name}')" class="w-full py-3 rounded-xl border border-error/30 font-label-caps text-label-caps text-error hover:bg-error/5 transition-colors flex items-center justify-center gap-2">
           <span class="material-symbols-outlined text-[16px]">delete</span> REMOVE SUBJECT
         </button>
@@ -257,9 +279,84 @@ const ClassesModule = (() => {
     if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
   }
 
-  function openPortalSync(subjectId) {
-    closeSubjectDetail();
-    DashboardModule.openSyncModal(subjectId);
+  function openEditClasses(subjectId) {
+    const s = _subjects.find(x => x.subject_id === subjectId);
+    if (!s) return;
+
+    const stats = ApiModule.calculateStats(s);
+    const card = document.getElementById(`baseline-card-${subjectId}`);
+    const actions = document.getElementById(`edit-classes-actions-${subjectId}`);
+    if (!card || !actions) return;
+
+    card.innerHTML = `
+      <p class="font-label-caps text-[10px] text-primary uppercase mb-3 font-semibold">Edit Class Counts</p>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center font-body-sm">
+          <label for="edit-base-held" class="text-on-surface-variant">Classes Held</label>
+          <input type="number" id="edit-base-held" value="${stats.totalHeld}" min="0" 
+            onkeydown="if(event.key==='-' || event.key==='+')event.preventDefault();"
+            oninput="if(this.value<0)this.value=0"
+            class="w-20 text-right bg-black/20 border border-white/10 rounded px-2 py-1 focus:border-primary focus:outline-none font-semibold text-on-surface">
+        </div>
+        <div class="flex justify-between items-center font-body-sm">
+          <label for="edit-base-attended" class="text-on-surface-variant">Classes Attended</label>
+          <input type="number" id="edit-base-attended" value="${stats.totalAttended}" min="0"
+            onkeydown="if(event.key==='-' || event.key==='+')event.preventDefault();"
+            oninput="if(this.value<0)this.value=0"
+            class="w-20 text-right bg-black/20 border border-white/10 rounded px-2 py-1 focus:border-primary focus:outline-none font-semibold text-on-surface">
+        </div>
+      </div>
+    `;
+
+    actions.innerHTML = `
+      <div class="flex gap-2">
+        <button onclick="ClassesModule.saveEditClasses('${subjectId}')" class="flex-1 py-4 rounded-xl bg-primary text-on-primary font-label-caps text-label-caps font-bold hover:bg-primary/95 active:scale-95 transition-all flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">save</span> SAVE
+        </button>
+        <button onclick="ClassesModule.cancelEditClasses('${subjectId}')" class="flex-1 py-4 rounded-xl glass-card text-on-surface-variant hover:text-on-surface font-label-caps text-label-caps active:scale-95 transition-all flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-[18px]">close</span> CANCEL
+        </button>
+      </div>
+    `;
+  }
+
+  async function saveEditClasses(subjectId) {
+    const s = _subjects.find(x => x.subject_id === subjectId);
+    if (!s) return;
+
+    const heldInput = document.getElementById('edit-base-held');
+    const attendedInput = document.getElementById('edit-base-attended');
+    if (!heldInput || !attendedInput) return;
+
+    const totalHeld = Math.max(0, parseInt(heldInput.value) || 0);
+    const totalAttended = Math.max(0, parseInt(attendedInput.value) || 0);
+
+    if (totalAttended > totalHeld) {
+      UIModule.toast('Classes Attended cannot exceed Classes Held.', 'error');
+      return;
+    }
+
+    const realtimeHeld = parseInt(s.realtime_held || 0);
+    const realtimeAttended = parseInt(s.realtime_attended || 0);
+
+    const baseHeld = Math.max(0, totalHeld - realtimeHeld);
+    const baseAttended = Math.max(0, totalAttended - realtimeAttended);
+
+    UIModule.showLoader(true);
+    try {
+      await ApiModule.setBaseline(subjectId, baseHeld, baseAttended);
+      UIModule.toast('Classes updated successfully!', 'success');
+      closeSubjectDetail();
+      await load();
+    } catch (err) {
+      UIModule.toast('Failed to update: ' + err.message, 'error');
+    } finally {
+      UIModule.showLoader(false);
+    }
+  }
+
+  function cancelEditClasses(subjectId) {
+    openSubjectDetail(subjectId);
   }
 
   function deleteSubjectConfirm(subjectId, name) {
@@ -275,5 +372,5 @@ const ClassesModule = (() => {
     });
   }
 
-  return { load, openSubjectDetail, closeSubjectDetail, openPortalSync, deleteSubjectConfirm };
+  return { load, openSubjectDetail, closeSubjectDetail, openEditClasses, saveEditClasses, cancelEditClasses, deleteSubjectConfirm };
 })();

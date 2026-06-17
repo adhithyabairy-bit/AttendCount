@@ -221,3 +221,86 @@ body::before {
   pointer-events: none;
   z-index: 0;
 }
+
+/* ─── Mobile Optimizations ────────────────────────────────── */
+
+/* Prevent text size inflation on iOS */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Prevent pull-to-refresh interference */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* Better tap targets on mobile */
+button, a, [onclick] {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+/* Prevent callout on long press for buttons */
+button {
+  -webkit-touch-callout: none;
+}
+
+/* Safe area padding on pages */
+.px-safe-margin {
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+/* Bottom nav safe area */
+#main-nav {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+/* Smooth momentum scrolling on iOS */
+main, .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─── Slide-in-from-bottom-10 ─────────────────────────────── */
+.slide-in-from-bottom-10 {
+  animation-name: slideFromBottom10;
+}
+@keyframes slideFromBottom10 {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Notification badge dot ──────────────────────────────── */
+.notif-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff5545;
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  animation: pulseDot 2s infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.4); opacity: 0.7; }
+}
+
+/* ─── Mobile card touch feedback ─────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  /* Tighter padding on very small screens */
+  .p-8 { padding: 1.25rem; }
+  
+  /* Slightly larger text for readability */
+  .font-body-sm {
+    font-size: 14px;
+  }
+}
+
+/* ─── Prevent layout shift on iOS notch ──────────────────── */
+header.fixed {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+

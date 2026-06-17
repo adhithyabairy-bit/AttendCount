@@ -12,28 +12,54 @@ const DashboardModule = (() => {
   let _isEditingEndDate = false;
 
   async function load() {
-    UIModule.showLoader(true);
+    // 1. Try to load from cache and render immediately
+    const cached = ApiModule.getLocalCache();
+    if (cached) {
+      _subjects = cached.subjects || [];
+      _slotTimes = cached.slotTimes || [];
+      _semesterEndDate = cached.semesterEndDate || null;
+      _futureHolidays = cached.futureHolidays || [];
+      _todayLogs = cached.todayLogs || {};
+      _renderPrompts();
+      _renderGauges();
+      _renderSafeToMiss();
+      _renderDailySchedule();
+      _renderTrend();
+      UIModule.showLoader(false); // Hide loader immediately!
+    } else {
+      UIModule.showLoader(true); // No cache, show loader
+    }
+
     try {
-      const [subjects, slotTimes, endDate] = await Promise.all([
-        ApiModule.getDashboard(),
+      const todayStr = UIModule.todayStr();
+      // Fetch everything in parallel to reduce sequential network queries
+      const [subjects, slotTimes, endDate, todayLogs] = await Promise.all([
+        ApiModule.getDashboard(true), // forceRefresh
         ApiModule.getSlotTimings(),
         ApiModule.getSemesterEndDate(),
+        ApiModule.getLogsForDate(todayStr),
       ]);
       _subjects = subjects;
       _slotTimes = slotTimes;
       _semesterEndDate = endDate;
+      _todayLogs = {};
+      todayLogs.forEach(l => { _todayLogs[l.subject_id] = l.status; });
       _futureHolidays = [];
 
       if (_semesterEndDate) {
-        const todayStr = UIModule.todayStr();
         _futureHolidays = await ApiModule.getFutureHolidays(todayStr, _semesterEndDate);
       }
 
-      // Load today's logs
-      const todayLogs = await ApiModule.getLogsForDate(UIModule.todayStr());
-      _todayLogs = {};
-      todayLogs.forEach(l => { _todayLogs[l.subject_id] = l.status; });
+      // Save to local cache
+      ApiModule.setLocalCache({
+        subjects: _subjects,
+        slotTimes: _slotTimes,
+        semesterEndDate: _semesterEndDate,
+        futureHolidays: _futureHolidays,
+        todayLogs: _todayLogs
+      });
 
+      _renderPrompts();
       _renderGauges();
       _renderSafeToMiss();
       _renderDailySchedule();
@@ -110,13 +136,11 @@ const DashboardModule = (() => {
 
     gaugeSection.innerHTML = `
       ${_gaugeHtml('real-gauge', 'REAL-TIME', realPct, realBadge, totalAttended, totalHeld)}
-      ${_gaugeHtml('portal-gauge', 'PORTAL', portalPct, portalBadge, portalAttended, portalHeld)}
     `;
 
     // Animate rings
     setTimeout(() => {
       UIModule.updateRing('real-gauge-svg', realPct, realBadge.color);
-      UIModule.updateRing('portal-gauge-svg', portalPct, portalBadge.color);
     }, 100);
   }
 
@@ -124,9 +148,9 @@ const DashboardModule = (() => {
     const r = 44, c = 2 * Math.PI * r;
     const offset = c * (1 - pct / 100);
     return `
-      <div class="glass-card rounded-2xl p-6 flex flex-col items-center space-y-4"
+      <div class="glass-card rounded-2xl p-8 flex flex-col items-center space-y-4 sm:flex-row sm:space-y-0 sm:gap-10 sm:justify-center"
         style="background: radial-gradient(circle at 50% 0%, ${badge.bg} 0%, rgba(255,255,255,0.02) 70%)">
-        <div class="relative w-52 h-52 flex items-center justify-center">
+        <div class="relative w-56 h-56 flex items-center justify-center">
           <div class="absolute inset-0 rounded-full blur-2xl" style="background:${badge.bg}"></div>
           <svg id="${id}-svg" class="w-full h-full -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="${r}" fill="transparent" stroke="rgba(255,255,255,0.05)" stroke-width="6"/>
@@ -139,15 +163,18 @@ const DashboardModule = (() => {
             <span class="font-label-caps text-label-caps text-on-surface-variant tracking-[0.2em]">${label}</span>
           </div>
         </div>
-        <div class="flex items-center gap-2 px-4 py-1.5 rounded-full backdrop-blur-md border"
-          style="background:${badge.bg}; border-color:${badge.border}">
-          <span class="material-symbols-outlined text-sm" style="color:${badge.color}">${badge.label === 'SAFE' ? 'check_circle' : badge.label === 'ON TRACK' ? 'info' : 'warning'}</span>
-          <span class="font-label-caps text-label-caps font-bold" style="color:${badge.color}">${badge.label}</span>
+        <div class="flex flex-col items-center sm:items-start gap-3">
+          <div class="flex items-center gap-2 px-4 py-1.5 rounded-full backdrop-blur-md border"
+            style="background:${badge.bg}; border-color:${badge.border}">
+            <span class="material-symbols-outlined text-sm" style="color:${badge.color}">${badge.label === 'SAFE' ? 'check_circle' : badge.label === 'ON TRACK' ? 'info' : 'warning'}</span>
+            <span class="font-label-caps text-label-caps font-bold" style="color:${badge.color}">${badge.label}</span>
+          </div>
+          <p class="font-body-sm text-body-sm text-on-surface-variant">${attended} attended / ${held} held</p>
         </div>
-        <p class="font-body-sm text-body-sm text-on-surface-variant text-center">${attended} attended / ${held} held</p>
       </div>
     `;
   }
+
 
   // ─── Safe-to-Miss ─────────────────────────────────────────
 
@@ -299,40 +326,6 @@ const DashboardModule = (() => {
       });
   }
 
-  function enableSemesterEdit() {
-    _isEditingEndDate = true;
-    _renderSafeToMiss();
-  }
-
-  function cancelSemesterEdit() {
-    _isEditingEndDate = false;
-    _renderSafeToMiss();
-  }
-
-  function saveSemesterEndDateInline() {
-    const input = document.getElementById('dash-semester-end-input');
-    if (!input) return;
-    const newDate = input.value;
-    if (!newDate || !/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
-      UIModule.toast("Please select a valid date.", "warning");
-      return;
-    }
-
-    UIModule.showLoader(true);
-    ApiModule.setSemesterEndDate(newDate)
-      .then(() => {
-        _semesterEndDate = newDate;
-        _isEditingEndDate = false;
-        UIModule.toast("Semester End Date updated!", "success");
-        return load();
-      })
-      .catch(err => {
-        UIModule.toast("Failed to update: " + err.message, "error");
-      })
-      .finally(() => {
-        UIModule.showLoader(false);
-      });
-  }
 
   // ─── What-If Predictor ────────────────────────────────────
 
@@ -561,5 +554,108 @@ const DashboardModule = (() => {
       .catch(err => UIModule.toast('Sync failed: ' + err.message, 'error'));
   }
 
-  return { load, markToday, initWhatIf, openSyncModal, enableSemesterEdit, cancelSemesterEdit, saveSemesterEndDateInline };
+  // ─── Prompts and Widget Installation Guide ────────────────
+
+  function _renderPrompts() {
+    const container = document.getElementById('dashboard-prompts');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    // Check Notification status — show on all devices
+    const showNotificationPrompt = ('Notification' in window) && Notification.permission !== 'granted'
+      && Notification.permission !== 'denied'; // don't nag if user explicitly denied
+
+    // Check Standalone status (not installed) — show on mobile only
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const showWidgetPrompt = !isStandalone && isMobile;
+
+    if (showNotificationPrompt) {
+      const card = document.createElement('div');
+      card.className = "glass-card rounded-2xl p-5 border border-primary/20 bg-primary/5 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300";
+      card.innerHTML = `
+        <div class="flex gap-4 items-center">
+          <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+            <span class="material-symbols-outlined text-[24px]">notifications_active</span>
+          </div>
+          <div>
+            <h4 class="font-headline-md text-[15px] leading-tight text-on-surface">Enable Class Alerts</h4>
+            <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Get notified before every class to log attendance.</p>
+          </div>
+        </div>
+        <button onclick="DashboardModule.enableNotificationsPrompt(this)" class="px-4 py-2 bg-primary text-on-primary font-label-caps text-[11px] font-bold rounded-xl active:scale-95 transition-transform shrink-0">ENABLE</button>
+      `;
+      container.appendChild(card);
+    }
+
+    if (showWidgetPrompt) {
+      const card = document.createElement('div');
+      card.className = "glass-card rounded-2xl p-5 border border-secondary/20 bg-secondary/5 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300";
+      card.innerHTML = `
+        <div class="flex gap-4 items-center">
+          <div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0 text-secondary">
+            <span class="material-symbols-outlined text-[24px]">widgets</span>
+          </div>
+          <div>
+            <h4 class="font-headline-md text-[15px] leading-tight text-on-surface">Add Daily Widget</h4>
+            <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Place a widget shortcut on your mobile home screen.</p>
+          </div>
+        </div>
+        <button onclick="DashboardModule.showWidgetInstallGuide()" class="px-4 py-2 bg-secondary text-on-secondary font-label-caps text-[11px] font-bold rounded-xl active:scale-95 transition-transform shrink-0">ADD WIDGET</button>
+      `;
+      container.appendChild(card);
+    }
+  }
+
+  async function enableNotificationsPrompt(btn) {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Enabling...';
+    }
+    const granted = await PushModule.requestPermission();
+    if (granted) {
+      await PushModule.subscribe();
+      _renderPrompts();
+    } else {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'ENABLE';
+      }
+    }
+  }
+
+  function showWidgetInstallGuide() {
+    const modal = document.getElementById('widget-guide-modal');
+    if (!modal) return;
+
+    // Check if browser native install prompt is available
+    const nativeBtn = document.getElementById('pwa-install-prompt-btn');
+    if (nativeBtn) {
+      const hasPrompt = !!window.AppRouter?.getInstallPrompt();
+      nativeBtn.classList.toggle('hidden', !hasPrompt);
+      nativeBtn.classList.toggle('block', hasPrompt);
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeWidgetGuide() {
+    const modal = document.getElementById('widget-guide-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  async function triggerNativeInstall() {
+    closeWidgetGuide();
+    if (window.AppRouter) {
+      await window.AppRouter.triggerInstall();
+      _renderPrompts();
+    }
+  }
+
+  return { load, markToday, initWhatIf, openSyncModal, enableSemesterEdit, cancelSemesterEdit, saveSemesterEndDateInline, enableNotificationsPrompt, showWidgetInstallGuide, closeWidgetGuide, triggerNativeInstall };
 })();

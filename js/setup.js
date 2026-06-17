@@ -29,17 +29,44 @@ const SetupModule = (() => {
     _timetable = {};
     _semesterEndDate = '';
 
-    // Load existing semester end date if it exists
-    ApiModule.getSemesterEndDate().then(date => {
+    UIModule.showLoader(true);
+    Promise.all([
+      ApiModule.getSemesterEndDate(),
+      ApiModule.getDashboard(),
+    ]).then(([date, subjects]) => {
       if (date) {
         _semesterEndDate = date;
         const input = document.getElementById('setup-semester-end');
         if (input) input.value = date;
       }
+
+      if (subjects && subjects.length > 0) {
+        _subjects = subjects.map(s => ({
+          tempId: s.subject_id,
+          id: s.subject_id,
+          name: s.subject_name,
+          type: s.subject_type,
+          color: s.color,
+          isExisting: true,
+          official_held: s.official_held,
+          official_attended: s.official_attended,
+        }));
+
+        subjects.forEach(s => {
+          _timetable[s.subject_id] = s.timetable || {};
+        });
+      }
+
+      _renderStep1();
+      _updateProgress();
+      UIModule.showLoader(false);
+    }).catch(err => {
+      UIModule.toast('Failed to load existing subjects: ' + err.message, 'error');
+      UIModule.showLoader(false);
+      _renderStep1();
+      _updateProgress();
     });
 
-    _renderStep1();
-    _updateProgress();
     _bindStepButtons();
   }
 
@@ -303,14 +330,38 @@ const SetupModule = (() => {
 
       const dayGrid = section.querySelector(`#grid-${day}`);
       _slotTimes.forEach((slot, i) => {
+        // Find if this day/slot is occupied by any subject in _timetable
+        let occupiedSubj = null;
+        for (const tempId in _timetable) {
+          const daysObj = _timetable[tempId] || {};
+          const slotsArr = daysObj[day] || [];
+          if (slotsArr.includes(i)) {
+            occupiedSubj = _subjects.find(s => s.tempId === tempId);
+            break;
+          }
+        }
+
         const div = document.createElement('div');
         div.id = `slot-${day}-${i}`;
-        div.className = 'timetable-slot glass-card rounded-xl p-3 min-h-[80px] flex flex-col gap-1 cursor-pointer hover:border-primary/40 transition-all';
+        
+        let subjectText = 'Empty';
+        let subjectColor = '';
+        let extraClasses = '';
+        let isItalic = 'italic text-outline/30';
+        
+        if (occupiedSubj) {
+          subjectText = occupiedSubj.name;
+          subjectColor = occupiedSubj.type === 'lab' ? '#fabd00' : '#adc6ff';
+          extraClasses = 'border-primary/30 bg-primary/5';
+          isItalic = '';
+        }
+
+        div.className = `timetable-slot glass-card rounded-xl p-3 min-h-[80px] flex flex-col gap-1 cursor-pointer hover:border-primary/40 transition-all ${extraClasses}`;
         div.onclick = () => openSlotModal(day, i);
         div.innerHTML = `
           <span class="text-[10px] text-outline/40 uppercase font-bold">S${i + 1}</span>
           <span class="slot-time-${i} text-[9px] text-primary/50 font-semibold">${slot.start}–${slot.end}</span>
-          <span class="slot-subject text-[11px] text-outline/30 italic mt-auto">Empty</span>
+          <span class="slot-subject text-[11px] mt-auto ${isItalic}" style="color:${subjectColor}">${subjectText}</span>
         `;
         dayGrid.appendChild(div);
       });
@@ -346,6 +397,13 @@ const SetupModule = (() => {
     // If lab, occupy 3 consecutive slots
     const slotsNeeded = subj.type === 'lab' ? 3 : 1;
     for (let i = slotIndex; i < slotIndex + slotsNeeded && i < _slotTimes.length; i++) {
+      // Overwrite occupied slots for other subjects
+      for (const otherTempId in _timetable) {
+        if (_timetable[otherTempId][day]) {
+          _timetable[otherTempId][day] = _timetable[otherTempId][day].filter(s => s !== i);
+        }
+      }
+
       const slotEl = document.getElementById(`slot-${day}-${i}`);
       if (slotEl) {
         slotEl.querySelector('.slot-subject').textContent = subj.name;
@@ -411,11 +469,11 @@ const SetupModule = (() => {
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="font-label-caps text-label-caps text-outline uppercase block mb-1">Classes Held</label>
-                <input type="number" min="0" class="baseline-held w-full bg-transparent border-b-2 border-outline-variant focus:border-primary outline-none py-2 font-display-stat text-3xl text-on-surface placeholder:text-outline/30 transition-colors text-center" placeholder="0" data-subject-temp="${s.tempId}">
+                <input type="number" min="0" onkeydown="if(event.key==='-' || event.key==='+')event.preventDefault();" oninput="if(this.value<0)this.value=0" class="baseline-held w-full bg-transparent border-b-2 border-outline-variant focus:border-primary outline-none py-2 font-display-stat text-3xl text-on-surface placeholder:text-outline/30 transition-colors text-center" placeholder="0" data-subject-temp="${s.tempId}" value="${s.official_held || 0}">
               </div>
               <div>
                 <label class="font-label-caps text-label-caps text-primary uppercase block mb-1">Attended</label>
-                <input type="number" min="0" class="baseline-attended w-full bg-transparent border-b-2 border-primary/30 focus:border-primary outline-none py-2 font-display-stat text-3xl text-primary placeholder:text-outline/30 transition-colors text-center" placeholder="0" data-subject-temp="${s.tempId}">
+                <input type="number" min="0" onkeydown="if(event.key==='-' || event.key==='+')event.preventDefault();" oninput="if(this.value<0)this.value=0" class="baseline-attended w-full bg-transparent border-b-2 border-primary/30 focus:border-primary outline-none py-2 font-display-stat text-3xl text-primary placeholder:text-outline/30 transition-colors text-center" placeholder="0" data-subject-temp="${s.tempId}" value="${s.official_attended || 0}">
               </div>
             </div>
           </div>
@@ -436,17 +494,30 @@ const SetupModule = (() => {
       await ApiModule.setSemesterEndDate(_semesterEndDate);
       await ApiModule.saveSlotTimings(_slotTimes);
 
-      // Create subjects + timetable
+      // Create/Update subjects + timetable
       const createdSubjects = {};
       for (const subj of _subjects) {
         // Convert tempId-based timetable to subject-level timetable
         const timetable = _timetable[subj.tempId] || {};
-        const dbSubj = await ApiModule.createSubject({
-          name: subj.name,
-          type: subj.type,
-          timetable,
-          color: subj.color,
-        });
+        let dbSubj;
+        if (subj.isExisting) {
+          // Update existing subject
+          await ApiModule.updateSubject(subj.id, {
+            name: subj.name,
+            type: subj.type,
+            timetable,
+            color: subj.color,
+          });
+          dbSubj = { id: subj.id, ...subj };
+        } else {
+          // Create new subject
+          dbSubj = await ApiModule.createSubject({
+            name: subj.name,
+            type: subj.type,
+            timetable,
+            color: subj.color,
+          });
+        }
         createdSubjects[subj.tempId] = dbSubj;
       }
 

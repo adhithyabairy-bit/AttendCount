@@ -42,20 +42,22 @@ const AuthModule = (() => {
   }
 
   async function signInWithGoogle() {
-    if (!_supabase) init();
-    const { error } = await _supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        // Request calendar.readonly so we can sync Google Calendar events
-        scopes: 'email profile',
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
+    try {
+      if (!_supabase) init();
+      const { error } = await _supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/',
+          scopes: 'email profile',
         },
-        redirectTo: window.location.origin + '/',
-      },
-    });
-    if (error) throw error;
+      });
+      if (error) throw error;
+    } catch (err) {
+      if (window.UIModule && typeof window.UIModule.toast === 'function') {
+        window.UIModule.toast('Sign in failed: ' + err.message, 'error');
+      }
+      throw err;
+    }
   }
 
   async function signOut() {
@@ -79,13 +81,7 @@ const AuthModule = (() => {
     return _currentUser?.email || null;
   }
 
-  function getGoogleAccessToken() {
-    // The Google access token is stored in the session's provider_token
-    // We need to re-fetch the session to get the latest token
-    return _supabase?.auth.getSession().then(({ data: { session } }) => {
-      return session?.provider_token || null;
-    });
-  }
+
 
   function onAuthChange(callback) {
     _authChangeCallbacks.push(callback);
@@ -103,7 +99,6 @@ const AuthModule = (() => {
     getSession,
     getUser,
     getUserEmail,
-    getGoogleAccessToken,
     onAuthChange,
     getClient,
   };

@@ -75,15 +75,15 @@ const PushModule = (() => {
           const [h, m] = slot.start.split(':').map(Number);
           const slotMins = h * 60 + m;
 
-          // Notify 5 minutes before
-          if (Math.abs(slotMins - nowMins - 5) < 1) {
+          // Notify at the start of the class slot
+          if (Math.abs(slotMins - nowMins) < 1) {
             const key = `notified-${UIModule.todayStr()}-${subj.id}-${slotIdx}`;
-            if (sessionStorage.getItem(key)) continue;
-            sessionStorage.setItem(key, '1');
+            if (localStorage.getItem(key)) continue;
+            localStorage.setItem(key, '1');
 
             if (_registration) {
-              _registration.showNotification(`Class Starting Soon: ${subj.name}`, {
-                body: `${slot.start} – ${slot.end} · ${subj.type === 'lab' ? 'Lab' : 'Theory'}`,
+              _registration.showNotification(`Class Starting: ${subj.name}`, {
+                body: `${slot.start} – ${slot.end} · ${subj.type === 'lab' ? 'Lab' : 'Theory'}\nTap to log attendance.`,
                 icon: '/icons/icon-192.png',
                 badge: '/icons/icon-192.png',
                 tag: `class-${subj.id}-${slotIdx}`,
@@ -103,12 +103,28 @@ const PushModule = (() => {
   }
 
   // Handle notification action messages from service worker
-  function handleServiceWorkerMessage(event) {
+  async function handleServiceWorkerMessage(event) {
     if (event.data?.type === 'NOTIFICATION_ACTION') {
-      const { action, url } = event.data;
-      if (action === 'present' || action === 'absent') {
-        // The service worker passes along the action; we handle it on the dashboard
-        window.AppRouter?.navigate('dashboard');
+      const { action, notificationData } = event.data;
+      if ((action === 'present' || action === 'absent') && notificationData?.subjectId) {
+        try {
+          UIModule.showLoader(true);
+          await ApiModule.markAttendance(notificationData.subjectId, notificationData.date || UIModule.todayStr(), action);
+          UIModule.toast(`Marked as ${action.toUpperCase()} from notification!`, action === 'present' ? 'success' : 'info');
+          
+          // Force cache clear so the UI updates
+          ApiModule.clearCache();
+          
+          if (window.AppRouter) {
+            window.AppRouter.navigate('dashboard');
+            // If already on dashboard, trigger load to update states
+            if (window.DashboardModule) window.DashboardModule.load();
+          }
+        } catch (err) {
+          UIModule.toast('Failed to mark attendance from notification.', 'error');
+        } finally {
+          UIModule.showLoader(false);
+        }
       }
     }
   }

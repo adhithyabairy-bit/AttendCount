@@ -29,7 +29,10 @@ const AuthModule = (() => {
     _supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         _currentUser = session.user;
-        await _upsertUserRecord(session.user);
+        // Run database upsert asynchronously to avoid blocking the event loop
+        _upsertUserRecord(session.user).catch(err => {
+          console.warn('[Auth] Failed to upsert user record:', err);
+        });
       } else {
         _currentUser = null;
       }
@@ -82,11 +85,15 @@ const AuthModule = (() => {
   async function _upsertUserRecord(user) {
     if (!_supabase) return;
     const { email, user_metadata } = user;
-    await _supabase.from('users').upsert({
-      email,
-      name: user_metadata?.full_name || user_metadata?.name || '',
-      avatar_url: user_metadata?.avatar_url || user_metadata?.picture || '',
-    }, { onConflict: 'email', ignoreDuplicates: false });
+    try {
+      await _supabase.from('users').upsert({
+        email,
+        name: user_metadata?.full_name || user_metadata?.name || '',
+        avatar_url: user_metadata?.avatar_url || user_metadata?.picture || '',
+      }, { onConflict: 'email', ignoreDuplicates: false });
+    } catch (err) {
+      console.warn('[Auth] _upsertUserRecord database error:', err);
+    }
   }
 
   async function signInWithGoogle() {

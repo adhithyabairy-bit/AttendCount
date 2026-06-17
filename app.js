@@ -47,14 +47,13 @@ const AppRouter = (() => {
         if (session?.user) {
           window.bootLog?.(`Session confirmed for ${session.user.email}`);
           UIModule.updateUserAvatar();
+          clearTimeout(loaderTimeout); // Clear early to prevent 10s login fallback
           if (!_routingInProgress) {
             _routingInProgress = true;
             try {
               await _routeAfterAuth();
-              clearTimeout(loaderTimeout);
             } catch (err) {
               console.error('[Boot] _routeAfterAuth error:', err);
-              clearTimeout(loaderTimeout);
               navigate('dashboard');
             } finally {
               _routingInProgress = false;
@@ -102,12 +101,19 @@ const AppRouter = (() => {
 
     // ─── Offline-Resilient Session Check ───────────────────────
     // getSession() awaits the stored token read + possible network token refresh.
-    // If the refresh fails (no internet, Supabase down) it returns null — but the
-    // user IS still logged in and we should show cached data, not the login page.
+    // If the refresh is slow (e.g. poor network), we race it with a timeout to avoid
+    // blocking the boot sequence.
     window.bootLog?.("Checking current auth session...");
     let session = null;
     try {
-      session = await AuthModule.getSession();
+      const sessionPromise = AuthModule.getSession();
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('timeout'), 2500));
+      const result = await Promise.race([sessionPromise, timeoutPromise]);
+      if (result === 'timeout') {
+        window.bootLog?.('getSession timed out after 2.5s — using fallback');
+      } else {
+        session = result;
+      }
     } catch (err) {
       window.bootLog?.('getSession() threw: ' + err.message);
     }
@@ -119,13 +125,12 @@ const AppRouter = (() => {
     }
 
     async function _safeRoute() {
+      clearTimeout(loaderTimeout); // Clear early to prevent 10s login fallback
       _routingInProgress = true;
       try {
         await _routeAfterAuth();
-        clearTimeout(loaderTimeout);
       } catch (err) {
         console.error('[Boot] _routeAfterAuth error:', err);
-        clearTimeout(loaderTimeout);
         navigate('dashboard');
       } finally {
         _routingInProgress = false;
@@ -138,9 +143,9 @@ const AppRouter = (() => {
       UIModule.updateUserAvatar();
       await _safeRoute();
     } else if (AuthModule.hasStoredSession()) {
-      // Offline path: token expired/refresh failed but session IS stored.
-      // Route to dashboard — shows cached data, retries when back online.
-      window.bootLog?.('getSession null but stored session found — routing to cached dashboard.');
+      // Offline/Slow path: token expired or refresh pending but session IS stored.
+      // Route to dashboard — shows cached data immediately, updates when online.
+      window.bootLog?.('getSession null or timeout but stored session found — routing to cached dashboard.');
       UIModule.updateUserAvatar();
       await _safeRoute();
     } else {
@@ -153,21 +158,24 @@ const AppRouter = (() => {
   }
 
   async function _routeAfterAuth() {
-    window.bootLog?.("Querying user subjects in database...");
+    window.bootLog?.("Querying user subjects...");
 
-    // Offline-resilient: if the network request fails, fall back to localStorage cache.
-    // This prevents the 10-second timeout firing and showing the login page.
+    // Offline-resilient & Instant Boot: Check local cache first so routing is instantaneous (0ms blocking).
+    // This prevents slow network requests from delaying the boot flow.
     let hasSubj = false;
-    try {
-      hasSubj = await ApiModule.hasSubjects();
-    } catch (err) {
-      window.bootLog?.('hasSubjects() error (may be offline): ' + err.message);
-      const cached = ApiModule.getLocalCache();
-      hasSubj = !!(cached?.subjects?.length);
-      window.bootLog?.('Using cached subjects. hasSubj=' + hasSubj);
+    const cached = ApiModule.getLocalCache();
+    if (cached?.subjects?.length) {
+      hasSubj = true;
+      window.bootLog?.('Cache-first subject check: has subjects. Routing immediately.');
+    } else {
+      try {
+        hasSubj = await ApiModule.hasSubjects();
+      } catch (err) {
+        window.bootLog?.('hasSubjects() error: ' + err.message);
+      }
     }
 
-    window.bootLog?.(`Subject query finished. hasSubjects = ${hasSubj}`);
+    window.bootLog?.(`Subject check finished. hasSubjects = ${hasSubj}`);
     const hash = window.location.hash.replace('#', '');
     const validPages = ['dashboard', 'holidays', 'classes', 'quick'];
 

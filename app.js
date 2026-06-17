@@ -53,13 +53,17 @@ const AppRouter = (() => {
             clearTimeout(loaderTimeout);
             _routingInProgress = false;
           }
-        } else {
-          window.bootLog?.("No user in session, navigating to login");
+        } else if (event === 'SIGNED_IN') {
+          // SIGNED_IN with no user is an error state — go to login
+          window.bootLog?.("SIGNED_IN with no user — navigating to login");
           if (!_routingInProgress) {
             clearTimeout(loaderTimeout);
             navigate('login');
           }
         }
+        // NOTE: INITIAL_SESSION with null session is normal on first tick before
+        // Supabase has read the stored token. We let the getSession() fallback below
+        // handle the "no session" case to avoid a false redirect to login.
       } else if (event === 'SIGNED_OUT') {
         window.bootLog?.("User signed out, navigating to login");
         ApiModule.clearCache();

@@ -14,6 +14,10 @@ const AuthModule = (() => {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        // Explicitly pin to localStorage so the session survives PWA standalone
+        // restarts, app-switcher kills, and service worker cache bumps.
+        storage: window.localStorage,
+        storageKey: 'attendcount-session',
       }
     });
 

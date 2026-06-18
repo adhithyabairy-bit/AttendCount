@@ -78,16 +78,57 @@ const DashboardModule = (() => {
   function _getRemainingPeriods(subject) {
     if (!_semesterEndDate) return 0;
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayMidnight = new Date(today);
+    todayMidnight.setHours(0, 0, 0, 0);
     const endDate = UIModule.parseLocalDate(_semesterEndDate);
 
-    if (endDate < today) return 0;
+    if (endDate < todayMidnight) return 0;
 
     const holidaySet = new Set(_futureHolidays.map(h => h.date));
     let remainingPeriods = 0;
 
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const current = new Date(today);
+    const todayStr = UIModule.toLocalDateStr(today);
+
+    // 1. Calculate remaining slots for TODAY (if today <= endDate and today is not a holiday)
+    if (todayMidnight <= endDate && !holidaySet.has(todayStr)) {
+      const dayName = dayNames[today.getDay()];
+      const timetable = subject.timetable || {};
+      const slots = timetable[dayName] || [];
+
+      const currentMinutes = today.getHours() * 60 + today.getMinutes();
+      const defaultSlotTimes = [
+        { start: '09:00', end: '10:00' },
+        { start: '10:00', end: '11:00' },
+        { start: '11:00', end: '12:00' },
+        { start: '13:00', end: '14:00' },
+        { start: '14:00', end: '15:00' },
+        { start: '15:00', end: '16:00' },
+      ];
+
+      function timeToMinutes(timeStr) {
+        const [h, m] = (timeStr || '00:00').split(':').map(Number);
+        return h * 60 + m;
+      }
+
+      slots.forEach(slotIdx => {
+        const slotTiming = _slotTimes[slotIdx] || defaultSlotTimes[slotIdx];
+        let endTimeStr = '23:59';
+        if (slotTiming && slotTiming.end) {
+          endTimeStr = slotTiming.end;
+        } else {
+          const startHour = 9 + slotIdx;
+          endTimeStr = `${String(startHour + 1).padStart(2, '0')}:00`;
+        }
+        const slotEndMinutes = timeToMinutes(endTimeStr);
+        if (currentMinutes < slotEndMinutes) {
+          remainingPeriods++;
+        }
+      });
+    }
+
+    // 2. Calculate remaining slots from tomorrow onwards
+    const current = new Date(todayMidnight);
     current.setDate(current.getDate() + 1); // Start counting from tomorrow
 
     const timetable = subject.timetable || {};

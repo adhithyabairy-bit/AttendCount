@@ -68,8 +68,12 @@ const DashboardModule = (() => {
       _renderDailySchedule();
       _renderTrend();
     } catch (err) {
-      UIModule.toast('Failed to load dashboard: ' + err.message, 'error');
-      ApiModule.logError(err.message, err.stack);
+      if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        UIModule.toast('You are offline. Showing cached data.', 'info');
+      } else {
+        UIModule.toast('Failed to load dashboard: ' + err.message, 'error');
+        ApiModule.logError(err.message, err.stack);
+      }
     } finally {
       UIModule.showLoader(false);
     }

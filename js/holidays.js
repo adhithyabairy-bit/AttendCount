@@ -13,8 +13,12 @@ const HolidaysModule = (() => {
     try {
       await _loadMonth(_currentYear, _currentMonth);
     } catch (err) {
-      UIModule.toast('Failed to load holidays: ' + err.message, 'error');
-      ApiModule.logError(err.message, err.stack);
+      if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        UIModule.toast('Holiday calendar is unavailable offline.', 'info');
+      } else {
+        UIModule.toast('Failed to load holidays: ' + err.message, 'error');
+        ApiModule.logError(err.message, err.stack);
+      }
     } finally {
       UIModule.showLoader(false);
     }

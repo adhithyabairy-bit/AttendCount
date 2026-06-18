@@ -135,11 +135,27 @@ const AuthModule = (() => {
   }
 
   function getUser() {
-    return _currentUser;
+    if (_currentUser) return _currentUser;
+    try {
+      const { SUPABASE_URL: url } = window.APP_CONFIG || {};
+      const ref = url?.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+      const defaultKey = ref ? `sb-${ref}-auth-token` : null;
+      const legacyKey  = 'attendcount-session';
+
+      const raw = (defaultKey ? localStorage.getItem(defaultKey) : null)
+                || localStorage.getItem(legacyKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.user) {
+          return parsed.user;
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   function getUserEmail() {
-    return _currentUser?.email || null;
+    return getUser()?.email || null;
   }
 
 

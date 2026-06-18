@@ -3,7 +3,7 @@
 // Strategy: Cache-first for shell, Network-first for API
 // ============================================================
 
-const CACHE_NAME = 'attendcount-v19';
+const CACHE_NAME = 'attendcount-v20';
 const OFFLINE_URL = '/';
 
 // Assets to pre-cache on install (shell + design assets)

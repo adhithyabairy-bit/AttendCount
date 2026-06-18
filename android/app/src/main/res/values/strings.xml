@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">AttendCount</string>
-    <string name="title_activity_main">AttendCount</string>
-    <string name="package_name">app.attendcount.twa</string>
-    <string name="custom_url_scheme">app.attendcount.twa</string>
-    <string name="widget_desc">Track and mark your attendance directly from your home screen.</string>
-</resources>

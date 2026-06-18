@@ -71,12 +71,6 @@ self.addEventListener('fetch', (event) => {
   // Skip chrome-extension and other non-http
   if (!url.protocol.startsWith('http')) return;
 
-  // Bypass cache completely for APK downloads
-  if (url.pathname.endsWith('.apk')) {
-    event.respondWith(fetch(request));
-    return;
-  }
-
   // Network-first for API calls
   if (NETWORK_FIRST_PATTERNS.some((p) => p.test(url.href))) {
     event.respondWith(networkFirst(request));

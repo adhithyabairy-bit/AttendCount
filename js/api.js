@@ -19,7 +19,6 @@ const ApiModule = (() => {
     _cachedDashboard = null;
     _cachedSemesterEndDate = undefined;
     _cachedSlotTimings = null;
-    clearNativeWidgetState();
   }
 
   // ─── Offline Queue ──────────────────────────────────────
@@ -119,64 +118,7 @@ const ApiModule = (() => {
       const email = _email();
       if (!email) return;
       localStorage.setItem(`attendcount_cache_${email}`, JSON.stringify(data));
-      // Sync state to native iOS/Android widgets
-      syncToNativeWidget(email, data);
     } catch (_) {}
-  }
-
-  async function syncToNativeWidget(email, cacheData) {
-    if (typeof window === 'undefined' || !window.Capacitor || !window.Capacitor.Plugins.WidgetBridge) {
-      return;
-    }
-    try {
-      const { WidgetBridge } = window.Capacitor.Plugins;
-      const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.APP_CONFIG || {};
-      const session = await AuthModule.getSession();
-      
-      const payload = {
-        supabase_url: SUPABASE_URL || '',
-        supabase_anon_key: SUPABASE_ANON_KEY || '',
-        user_email: email,
-        access_token: session?.access_token || '',
-        refresh_token: session?.refresh_token || '',
-        subjects: JSON.stringify(cacheData?.subjects || []),
-        slot_timings: JSON.stringify(cacheData?.slotTimes || []),
-        today_logs: JSON.stringify(cacheData?.todayLogs || {}),
-        last_updated: new Date().toISOString()
-      };
-
-      for (const [key, val] of Object.entries(payload)) {
-        await WidgetBridge.setItem({ key, value: String(val), group: 'group.app.attendcount' });
-      }
-
-      if (window.Capacitor.getPlatform() === 'android') {
-        await WidgetBridge.setRegisteredWidgets({
-          widgets: ['app.attendcount.twa.AttendanceWidgetProvider']
-        });
-      }
-
-      await WidgetBridge.reloadAllTimelines();
-      console.log('[WidgetSync] Successfully synced state to native widgets.');
-    } catch (err) {
-      console.warn('[WidgetSync] Failed to sync state to native widgets:', err);
-    }
-  }
-
-  async function clearNativeWidgetState() {
-    if (typeof window === 'undefined' || !window.Capacitor || !window.Capacitor.Plugins.WidgetBridge) {
-      return;
-    }
-    try {
-      const { WidgetBridge } = window.Capacitor.Plugins;
-      const keys = ['supabase_url', 'supabase_anon_key', 'user_email', 'access_token', 'refresh_token', 'subjects', 'slot_timings', 'today_logs', 'last_updated'];
-      for (const key of keys) {
-        await WidgetBridge.removeItem({ key, group: 'group.app.attendcount' });
-      }
-      await WidgetBridge.reloadAllTimelines();
-      console.log('[WidgetSync] Cleared native widget state.');
-    } catch (err) {
-      console.warn('[WidgetSync] Failed to clear native widget state:', err);
-    }
   }
 
   // ─── Dashboard ─────────────────────────────────────────

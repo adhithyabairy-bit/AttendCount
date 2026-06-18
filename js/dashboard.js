@@ -907,25 +907,6 @@ const DashboardModule = (() => {
       `;
       container.appendChild(card);
     }
-
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    if (isAndroid) {
-      const card = document.createElement('div');
-      card.className = "glass-card rounded-2xl p-5 border border-primary/20 bg-primary/5 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-300";
-      card.innerHTML = `
-        <div class="flex gap-4 items-center">
-          <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-primary">
-            <span class="material-symbols-outlined text-[24px]">android</span>
-          </div>
-          <div>
-            <h4 class="font-headline-md text-[15px] leading-tight text-on-surface">Native Android Widget App</h4>
-            <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Download the APK to place a native widget on your home screen.</p>
-          </div>
-        </div>
-        <a href="/attendcount.apk" download="attendcount.apk" class="px-4 py-2 bg-primary text-on-primary font-label-caps text-[11px] font-bold rounded-xl active:scale-95 transition-transform shrink-0 inline-block text-center">DOWNLOAD APK</a>
-      `;
-      container.appendChild(card);
-    }
   }
 
   async function enableNotificationsPrompt(btn) {

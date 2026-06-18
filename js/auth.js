@@ -100,36 +100,19 @@ const AuthModule = (() => {
     try {
       if (!_supabase) init();
 
-      const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
-      const redirectTo = isNative ? 'attendcount://login-callback' : window.location.origin + '/';
+      // Always redirect back to wherever the user opened the app from.
+      // On Vercel this will be https://attend-count.vercel.app/
+      // On localhost this will be http://localhost:3000/
+      const redirectTo = window.location.origin + '/';
 
-      if (isNative) {
-        // Use Capacitor Browser to open Supabase Google OAuth URL
-        const { data, error } = await _supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo,
-            scopes: 'email profile',
-            skipBrowserRedirect: true,
-          },
-        });
-        if (error) throw error;
-        if (data?.url) {
-          await window.Capacitor.Plugins.Browser.open({ url: data.url });
-        } else {
-          throw new Error('OAuth URL not returned from Supabase.');
-        }
-      } else {
-        // Standard Web Redirect flow
-        const { error } = await _supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo,
-            scopes: 'email profile',
-          },
-        });
-        if (error) throw error;
-      }
+      const { error } = await _supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          scopes: 'email profile',
+        },
+      });
+      if (error) throw error;
     } catch (err) {
       if (window.UIModule && typeof window.UIModule.toast === 'function') {
         window.UIModule.toast('Sign in failed: ' + err.message, 'error');

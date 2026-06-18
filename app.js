@@ -155,59 +155,6 @@ const AppRouter = (() => {
       UIModule.showLoader(false);
       navigate('login');
     }
-
-    // ─── Native Deep Link Listener ─────────────────────────────
-    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-      window.bootLog?.("Registering native deep link listener...");
-      const { App: CapApp, Browser: CapBrowser } = window.Capacitor.Plugins;
-      
-      CapApp.addListener('appUrlOpen', async (data) => {
-        window.bootLog?.("Deep link received: " + data.url);
-        try {
-          const url = new URL(data.url);
-          // Parse hash parameters from the OAuth callback url
-          // Example: attendcount://login-callback#access_token=...&refresh_token=...
-          const hash = url.hash;
-          if (hash) {
-            const params = new URLSearchParams(hash.substring(1));
-            const access_token = params.get('access_token');
-            const refresh_token = params.get('refresh_token');
-            
-            if (access_token && refresh_token) {
-              window.bootLog?.("OAuth tokens found in deep link. Authenticating session...");
-              UIModule.showLoader(true);
-              
-              const supabase = AuthModule.getClient();
-              const { error } = await supabase.auth.setSession({
-                access_token,
-                refresh_token
-              });
-              if (error) throw error;
-              
-              window.bootLog?.("Native session established successfully.");
-              
-              // Load the dashboard — this will automatically pull fresh data, 
-              // save to cache (triggering widget sync), and render the UI.
-              if (window.DashboardModule && typeof window.DashboardModule.load === 'function') {
-                await window.DashboardModule.load();
-              }
-              
-              // Navigate to dashboard
-              navigate('dashboard');
-            }
-          }
-        } catch (err) {
-          console.error('[DeepLink] Failed to handle deep link login:', err);
-          UIModule.toast('Login failed: ' + err.message, 'error');
-        } finally {
-          // Always close the system browser Custom Tab
-          try {
-            await CapBrowser.close();
-          } catch (_) {}
-          UIModule.showLoader(false);
-        }
-      });
-    }
   }
 
   async function _routeAfterAuth() {

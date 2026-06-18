@@ -13,13 +13,12 @@ const HolidaysModule = (() => {
     try {
       await _loadMonth(_currentYear, _currentMonth);
     } catch (err) {
+      const errStr = String(err).toLowerCase();
       const isNetwork = !navigator.onLine || 
-        (err.message && (
-          err.message.toLowerCase().includes('fetch') || 
-          err.message.toLowerCase().includes('network') || 
-          err.message.toLowerCase().includes('typeerror') || 
-          err.message.toLowerCase().includes('load failed')
-        )) || 
+        errStr.includes('fetch') || 
+        errStr.includes('network') || 
+        errStr.includes('typeerror') || 
+        errStr.includes('load failed') ||
         err.name === 'TypeError';
 
       if (isNetwork) {

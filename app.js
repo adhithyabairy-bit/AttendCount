@@ -30,6 +30,15 @@ const AppRouter = (() => {
       }).catch(err => {
         console.warn('[SW] Registration failed:', err);
       });
+
+      // Automatically reload page when a new service worker activates and claims control
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
     }
 
     // Initialize auth

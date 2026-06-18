@@ -4,6 +4,8 @@
     android:minHeight="110dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/attendance_widget_layout"
+    android:previewLayout="@layout/attendance_widget_layout"
+    android:description="@string/widget_desc"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen">
 </appwidget-provider>

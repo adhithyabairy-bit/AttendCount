@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="app.attendcount.twa">
 
     <application
         android:allowBackup="true"
@@ -11,7 +12,7 @@
 
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
-            android:name=".MainActivity"
+            android:name="app.attendcount.twa.MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
@@ -36,11 +37,14 @@
 
         <!-- Home Screen Widget Receiver -->
         <receiver
-            android:name=".AttendanceWidgetProvider"
+            android:name="app.attendcount.twa.AttendanceWidgetProvider"
             android:label="AttendCount Widget"
+            android:enabled="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <intent-filter>
                 <action android:name="app.attendcount.twa.ACTION_MARK_ATTENDANCE" />
             </intent-filter>
             <meta-data

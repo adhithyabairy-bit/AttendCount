@@ -40,7 +40,8 @@ const filesToCopy = [
   'config.js',
   'styles.css',
   'manifest.json',
-  'sw.js'
+  'sw.js',
+  'attendcount.apk'
 ];
 
 // Directories to copy
